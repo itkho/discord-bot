@@ -37,18 +37,30 @@ class CustomClient(discord.Client):
             self._member_role = member_roles[0]
         return self._member_role
 
-    async def on_ready(self):
-        print(f"{self.user} has connected to Discord!")
-        print(f"Guilds: {client.guilds}")
-        print(f"Member Role: {self.guild.roles}")
+    @property
+    def presentation_channel(self) -> Optional[discord.TextChannel]:
+        if not hasattr(self, "_presentation_channel"):
+            presentation_channels = [
+                c
+                for c in self.guild.channels
+                if c.name.lower() == PRESENTATION_CHANNEL_NAME.lower()
+            ]
+            if len(presentation_channels) != 1:
+                raise ValueError(
+                    f"There must be one and only one '{PRESENTATION_CHANNEL_NAME}' channel."
+                )
+            self._presentation_channel = presentation_channels[0]
+        return self._presentation_channel
 
-    async def send_marhaban_message(
-        self, channel: discord.TextChannel, to: discord.User
-    ):
+    # async def on_ready(self):
+    #     print(f"{self.user} has connected to Discord!")
+    #     print(f"Guilds: {client.guilds}")
+    #     print(f"Member Role: {self.guild.roles}")
+
+    async def send_marhaban_message(self, to: discord.User):
         await to.send(
-            f"Marhaban {to.mention} 👋\n Présente toi dans le channel #présentation pour continuer"
+            f"(TODO) Marhaban {to.mention} 👋\n Présente toi dans le channel {self.presentation_channel.mention} pour continuer"
         )
-        # await channel.send(f"Marhaban {to.mention} 👋")
 
     # TODO
     # async def on_member_join(self, member: discord.Member):
@@ -59,18 +71,18 @@ class CustomClient(discord.Client):
         if message.author == self.user:
             return
 
-        if message.channel.name != PRESENTATION_CHANNEL_NAME:
+        if message.channel != self.presentation_channel:
             return
 
         # I should have been use "on_member_join" but it doesn't work.
         # Don't remember why...
         if message.type == discord.MessageType.new_member:
-            await self.send_marhaban_message(channel=message.channel, to=message.author)
+            await self.send_marhaban_message(to=message.author)
             return
 
         if self.member_role not in message.author.roles:
             await message.author.add_roles(self.member_role)
-            await message.channel.send("ACCESS GRANTED! 🎉")
+            await message.author.send("(TODO) ACCESS GRANTED! 🎉")
             return
 
 
