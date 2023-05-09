@@ -52,20 +52,10 @@ class CustomClient(discord.Client):
             self._presentation_channel = presentation_channels[0]
         return self._presentation_channel
 
-    # async def on_ready(self):
-    #     print(f"{self.user} has connected to Discord!")
-    #     print(f"Guilds: {client.guilds}")
-    #     print(f"Member Role: {self.guild.roles}")
-
     async def send_marhaban_message(self, to: discord.User):
         await to.send(
             f"(TODO) Marhaban {to.mention} 👋\n Présente toi dans le channel {self.presentation_channel.mention} pour continuer"
         )
-
-    # TODO
-    # async def on_member_join(self, member: discord.Member):
-    #     await member.create_dm()
-    #     await member.dm_channel.send(f"Hi {member.name}, welcome to my Discord server!")
 
     async def on_message(self, message: discord.Message):
         if message.author == self.user:
@@ -75,7 +65,7 @@ class CustomClient(discord.Client):
             return
 
         # I should have been use "on_member_join" but it doesn't work.
-        # Don't remember why...
+        # The event doesn't fire (maybe because of wrong roles/permissions)
         if message.type == discord.MessageType.new_member:
             await self.send_marhaban_message(to=message.author)
             return
