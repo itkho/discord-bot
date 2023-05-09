@@ -39,8 +39,8 @@ class CustomClient(discord.Client):
 
     async def on_ready(self):
         print(f"{self.user} has connected to Discord!")
-        print(f"Guilds: {self.guild}")
-        print(f"Member Role: {self.member_role}")
+        print(f"Guilds: {client.guilds}")
+        print(f"Member Role: {self.guild.roles}")
 
     async def send_marhaban_message(
         self, channel: discord.TextChannel, to: discord.User
