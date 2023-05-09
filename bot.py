@@ -16,7 +16,7 @@ class CustomClient(discord.Client):
     @property
     def guild(self) -> Optional[discord.Guild]:
         if not hasattr(self, "_guild"):
-            guilds = [g for g in client.guilds if g.name.lower == GUILD_NAME.lower()]
+            guilds = [g for g in client.guilds if g.name.lower() == GUILD_NAME.lower()]
             if len(guilds) != 1:
                 raise ValueError(f"There must be one and only one {GUILD_NAME} guild.")
             self._guild = guilds[0]
