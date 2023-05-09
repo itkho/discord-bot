@@ -45,7 +45,15 @@ class CustomClient(discord.Client):
     async def send_marhaban_message(
         self, channel: discord.TextChannel, to: discord.User
     ):
-        await channel.send(f"Marhaban {to.mention} 👋")
+        await to.send(
+            f"Marhaban {to.mention} 👋\n Présente toi dans le channel #présentation pour continuer"
+        )
+        # await channel.send(f"Marhaban {to.mention} 👋")
+
+    # TODO
+    # async def on_member_join(self, member: discord.Member):
+    #     await member.create_dm()
+    #     await member.dm_channel.send(f"Hi {member.name}, welcome to my Discord server!")
 
     async def on_message(self, message: discord.Message):
         if message.author == self.user:
@@ -54,6 +62,8 @@ class CustomClient(discord.Client):
         if message.channel.name != PRESENTATION_CHANNEL_NAME:
             return
 
+        # I should have been use "on_member_join" but it doesn't work.
+        # Don't remember why...
         if message.type == discord.MessageType.new_member:
             await self.send_marhaban_message(channel=message.channel, to=message.author)
             return
