@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 GUILD_NAME = os.getenv("GUILD_NAME")
+MARHABAN_MESSAGE = os.getenv("MARHABAN_MESSAGE")
+GRANTED_MESSAGE = os.getenv("GRANTED_MESSAGE")
 
 PRESENTATION_CHANNEL_NAME = "presentation"
 MEMBER_ROLE_NAME = "member"
@@ -52,11 +54,6 @@ class CustomClient(discord.Client):
             self._presentation_channel = presentation_channels[0]
         return self._presentation_channel
 
-    async def send_marhaban_message(self, to: discord.User):
-        await to.send(
-            f"(TODO) Marhaban {to.mention} 👋\n Présente toi dans le channel {self.presentation_channel.mention} pour continuer"
-        )
-
     async def on_message(self, message: discord.Message):
         if message.author == self.user:
             return
@@ -67,12 +64,17 @@ class CustomClient(discord.Client):
         # I should have been use "on_member_join" but it doesn't work.
         # The event doesn't fire (maybe because of wrong roles/permissions)
         if message.type == discord.MessageType.new_member:
-            await self.send_marhaban_message(to=message.author)
+            await message.author.send(
+                MARHABAN_MESSAGE.format(
+                    user_mention=message.author.mention,
+                    channel_mention=self.presentation_channel.mention,
+                )
+            )
             return
 
         if self.member_role not in message.author.roles:
             await message.author.add_roles(self.member_role)
-            await message.author.send("(TODO) ACCESS GRANTED! 🎉")
+            await message.author.send(GRANTED_MESSAGE)
             return
 
 
