@@ -79,7 +79,8 @@ class CustomClient(discord.Client):
             return
 
 
-intents = discord.Intents.default()
-intents.message_content = True
-client = CustomClient(intents=intents)
-client.run(TOKEN)
+def run_disord_client():
+    intents = discord.Intents.default()
+    intents.message_content = True
+    client = CustomClient(intents=intents)
+    client.run(TOKEN)
