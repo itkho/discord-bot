@@ -5,6 +5,7 @@ import discord
 from dotenv import load_dotenv
 
 load_dotenv()
+
 TOKEN = os.getenv("DISCORD_TOKEN")
 GUILD_NAME = os.getenv("GUILD_NAME")
 MARHABAN_MESSAGE = os.getenv("MARHABAN_MESSAGE")
