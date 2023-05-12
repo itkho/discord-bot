@@ -1,6 +1,6 @@
 from typing import Union
 
-from fastapi import FastAPI
+from fastapi import BackgroundTasks, FastAPI
 
 from bot import run_disord_client
 
@@ -18,6 +18,6 @@ def read_item(item_id: int, q: Union[str, None] = None):
 
 
 @app.get("/start-bot")
-def read_root():
-    run_disord_client()
+def read_root(background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_disord_client)
     return {"bot": "UP"}
