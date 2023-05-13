@@ -1,6 +1,10 @@
 import os
 
-if not (TOKEN := os.getenv("DISCORD_TOKEN", "")):
+from dotenv import load_dotenv
+
+load_dotenv()
+
+if not (DISCORD_TOKEN := os.getenv("DISCORD_TOKEN", "")):
     raise ValueError("No 'DISCORD_TOKEN' variable environment found")
 
 if not (GUILD_NAME := os.getenv("GUILD_NAME", "")):

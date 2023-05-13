@@ -2,12 +2,12 @@ import discord
 from dotenv import load_dotenv
 
 from consts import (
+    DISCORD_TOKEN,
     GRANTED_MESSAGE,
     GUILD_NAME,
     MARHABAN_MESSAGE,
     MEMBER_ROLE_NAME,
     PRESENTATION_CHANNEL_NAME,
-    TOKEN,
 )
 
 load_dotenv()
@@ -88,4 +88,4 @@ def run_disord_client():
     intents = discord.Intents.default()
     intents.message_content = True
     client = CustomClient(intents=intents)
-    client.run(TOKEN)
+    client.run(DISCORD_TOKEN)
