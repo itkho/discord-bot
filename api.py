@@ -1,4 +1,5 @@
 from fastapi import BackgroundTasks, FastAPI
+from fastapi.responses import RedirectResponse
 
 from bot import run_disord_client
 
@@ -18,4 +19,4 @@ def start_bot(background_tasks: BackgroundTasks):
     if not is_bot_up:
         background_tasks.add_task(run_disord_client)
         is_bot_up = True
-    return {"bot": "UP"}
+    return RedirectResponse(url="/")
