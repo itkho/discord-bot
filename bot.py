@@ -1,24 +1,24 @@
-import os
-from typing import Optional
-
 import discord
 from dotenv import load_dotenv
 
+from consts import (
+    GRANTED_MESSAGE,
+    GUILD_NAME,
+    MARHABAN_MESSAGE,
+    MEMBER_ROLE_NAME,
+    PRESENTATION_CHANNEL_NAME,
+    TOKEN,
+)
+
 load_dotenv()
-
-TOKEN = os.getenv("DISCORD_TOKEN")
-GUILD_NAME = os.getenv("GUILD_NAME")
-MARHABAN_MESSAGE = os.getenv("MARHABAN_MESSAGE")
-GRANTED_MESSAGE = os.getenv("GRANTED_MESSAGE")
-
-PRESENTATION_CHANNEL_NAME = "presentation"
-MEMBER_ROLE_NAME = "member"
 
 
 class CustomClient(discord.Client):
     @property
-    def guild(self) -> Optional[discord.Guild]:
+    def guild(self) -> discord.Guild:
         if not hasattr(self, "_guild"):
+            if not GUILD_NAME:
+                raise ValueError("No guild name found")
             guilds = [g for g in self.guilds if g.name.lower() == GUILD_NAME.lower()]
             if len(guilds) != 1:
                 raise ValueError(f"There must be one and only one {GUILD_NAME} guild.")
@@ -26,7 +26,7 @@ class CustomClient(discord.Client):
         return self._guild
 
     @property
-    def member_role(self) -> Optional[discord.Role]:
+    def member_role(self) -> discord.Role:
         if not hasattr(self, "_member_role"):
             member_roles = [
                 r
@@ -41,7 +41,7 @@ class CustomClient(discord.Client):
         return self._member_role
 
     @property
-    def presentation_channel(self) -> Optional[discord.TextChannel]:
+    def presentation_channel(self) -> discord.TextChannel:
         if not hasattr(self, "_presentation_channel"):
             presentation_channels = [
                 c
@@ -52,6 +52,8 @@ class CustomClient(discord.Client):
                 raise ValueError(
                     f"There must be one and only one '{PRESENTATION_CHANNEL_NAME}' channel."
                 )
+            if not isinstance(presentation_channels[0], discord.TextChannel):
+                raise ValueError("Presentation channel should be of type 'TextChannel'")
             self._presentation_channel = presentation_channels[0]
         return self._presentation_channel
 
@@ -73,7 +75,10 @@ class CustomClient(discord.Client):
             )
             return
 
-        if self.member_role not in message.author.roles:
+        if (
+            isinstance(message.author, discord.Member)
+            and self.member_role not in message.author.roles
+        ):
             await message.author.add_roles(self.member_role)
             await message.author.send(GRANTED_MESSAGE)
             return

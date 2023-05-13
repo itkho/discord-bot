@@ -1,23 +1,21 @@
-from typing import Union
-
 from fastapi import BackgroundTasks, FastAPI
 
 from bot import run_disord_client
 
 app = FastAPI()
 
+is_bot_up: bool = False
+
 
 @app.get("/")
-def read_root():
-    return {"Hello": "World"}
-
-
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
+def home():
+    return {"Bot status": "UP" if is_bot_up else "DOWN"}
 
 
 @app.get("/start-bot")
-def read_root(background_tasks: BackgroundTasks):
-    background_tasks.add_task(run_disord_client)
+def start_bot(background_tasks: BackgroundTasks):
+    global is_bot_up
+    if not is_bot_up:
+        background_tasks.add_task(run_disord_client)
+        is_bot_up = True
     return {"bot": "UP"}
