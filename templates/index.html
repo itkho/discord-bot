@@ -1,0 +1,32 @@
+<html>
+
+<head>
+    <title>ITkho Discord Bot</title>
+</head>
+
+<body>
+    <h1>Bot is currently: {{"UP" if is_bot_up else "DOWN"}}</h1>
+
+    <button onclick="toggleBot()">Force start</button>
+
+    <script>
+        function toggleBot() {
+            fetch('http://127.0.0.1:8000/start-bot', {
+                method: 'POST',
+                redirect: 'manual',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ "force": true })
+            })
+                .then(response => response.json())
+                .then(response => {
+                    console.log(response.is_bot_up)
+                    window.location = "http://127.0.0.1:8000/"
+                })
+        }
+    </script>
+</body>
+
+</html>
