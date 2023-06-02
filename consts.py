@@ -18,4 +18,5 @@ if not (GRANTED_MESSAGE := os.getenv("GRANTED_MESSAGE", "")):
 
 
 PRESENTATION_CHANNEL_NAME = "presentation"
+RULES_CHANNEL_NAME = "rules"
 MEMBER_ROLE_NAME = "member"

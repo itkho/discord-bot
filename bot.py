@@ -8,6 +8,7 @@ from consts import (
     MARHABAN_MESSAGE,
     MEMBER_ROLE_NAME,
     PRESENTATION_CHANNEL_NAME,
+    RULES_CHANNEL_NAME,
 )
 
 load_dotenv()
@@ -57,6 +58,23 @@ class CustomClient(discord.Client):
             self._presentation_channel = presentation_channels[0]
         return self._presentation_channel
 
+    @property
+    def rules_channel(self) -> discord.TextChannel:
+        if not hasattr(self, "_rules_channel"):
+            rules_channels = [
+                c
+                for c in self.guild.channels
+                if c.name.lower() == RULES_CHANNEL_NAME.lower()
+            ]
+            if len(rules_channels) != 1:
+                raise ValueError(
+                    f"There must be one and only one '{RULES_CHANNEL_NAME}' channel."
+                )
+            if not isinstance(rules_channels[0], discord.TextChannel):
+                raise ValueError("Rules channel should be of type 'TextChannel'")
+            self._rules_channel = rules_channels[0]
+        return self._rules_channel
+
     async def on_message(self, message: discord.Message):
         if message.author == self.user:
             return
@@ -70,7 +88,7 @@ class CustomClient(discord.Client):
             await message.author.send(
                 MARHABAN_MESSAGE.format(
                     user_mention=message.author.mention,
-                    channel_mention=self.presentation_channel.mention,
+                    presentation_channel_mention=self.presentation_channel.mention,
                 )
             )
             return
@@ -80,7 +98,11 @@ class CustomClient(discord.Client):
             and self.member_role not in message.author.roles
         ):
             await message.author.add_roles(self.member_role)
-            await message.author.send(GRANTED_MESSAGE)
+            await message.author.send(
+                GRANTED_MESSAGE.format(
+                    rules_channel_mention=self.rules_channel.mention,
+                )
+            )
             return
 
 
