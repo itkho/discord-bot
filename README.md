@@ -13,5 +13,7 @@ uvicorn api:app --reload
 ```
 
 For now, the bot run here, on a server with free option: https://dashboard.render.com/web/srv-chd6t33hp8u0163j5phg
-The API is accessible grom here: https://itkho-bot.onrender.com
+
+The API is accessible from here: https://itkho-bot.onrender.com
+
 And this cron keeps the server awake: https://console.cron-job.org
