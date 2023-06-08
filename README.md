@@ -3,13 +3,18 @@ Discord bot for the itkho guild
 
 Install deps with: 
 ```py
-pip install -r requirements.txt  # don't forget the virtual env
+pip install -r requirements.txt  # don't forget the virtual env!
 ```
 (python 3.11.3 was used)
 
 Run it with:
 ```py
 uvicorn api:app --reload
+```
+
+For development purpose, you can just run the discord bot with:
+```py
+python bot.py  # or, even better, in debugging mode through your IDE
 ```
 
 For now, the bot run here, on a server with free option: https://dashboard.render.com/web/srv-chd6t33hp8u0163j5phg

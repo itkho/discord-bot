@@ -16,6 +16,9 @@ if not (MARHABAN_MESSAGE := os.getenv("MARHABAN_MESSAGE", "")):
 if not (GRANTED_MESSAGE := os.getenv("GRANTED_MESSAGE", "")):
     raise ValueError("No 'GRANTED_MESSAGE' variable environment found")
 
+if not (SAVED_MESSAGE_TEMPLATE := os.getenv("SAVED_MESSAGE_TEMPLATE", "")):
+    raise ValueError("No 'SAVED_MESSAGE_TEMPLATE' variable environment found")
+
 
 PRESENTATION_CHANNEL_NAME = "presentation"
 RULES_CHANNEL_NAME = "rules"

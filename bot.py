@@ -12,6 +12,7 @@ from consts import (
     PRESENTATION_CHANNEL_NAME,
     ROLES_CHANNEL_NAME,
     RULES_CHANNEL_NAME,
+    SAVED_MESSAGE_TEMPLATE,
 )
 
 load_dotenv()
@@ -102,9 +103,6 @@ class CustomClient(discord.Client):
         if payload.channel_id != self.roles_channel.id:
             return
 
-        if payload.emoji.name != "✅":
-            return
-
         message = await self.roles_channel.fetch_message(payload.message_id)
 
         if not message.role_mentions:
@@ -117,32 +115,56 @@ class CustomClient(discord.Client):
 
         return role
 
+    async def get_message(
+        self,
+        payload: discord.RawReactionActionEvent,
+    ) -> discord.Message:
+        channel = await self.guild.fetch_channel(payload.channel_id)
+        return await channel.fetch_message(payload.message_id)
+
     async def get_user(self, user_id: int) -> Optional[discord.Member]:
         return await self.guild.fetch_member(user_id)
 
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
-        role = await self.get_role(payload=payload)
+        match payload.emoji.name:
+            case "✅":
+                role = await self.get_role(payload=payload)
 
-        if not role:
-            return
+                if not role:
+                    return
 
-        if not payload.member:
-            return
+                if not payload.member:
+                    return
 
-        await payload.member.add_roles(role)
+                await payload.member.add_roles(role)
+
+            case "💾":
+                message = await self.get_message(payload=payload)
+
+                if not payload.member:
+                    return
+
+                await payload.member.send(
+                    content=SAVED_MESSAGE_TEMPLATE.format(
+                        message_content=message.content.replace("\n", "\n> "),
+                        message_link=message.jump_url,
+                    )
+                )
 
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
-        role = await self.get_role(payload=payload)
+        match payload.emoji.name:
+            case "✅":
+                role = await self.get_role(payload=payload)
 
-        if not role:
-            return
+                if not role:
+                    return
 
-        # There is not member in the payload on the reaction removal
-        member = await self.get_user(user_id=payload.user_id)
-        if not member:
-            return
+                # There is not member in the payload on the reaction removal
+                member = await self.get_user(user_id=payload.user_id)
+                if not member:
+                    return
 
-        await member.remove_roles(role)
+                await member.remove_roles(role)
 
     async def on_message(self, message: discord.Message):
         if message.author == self.user:
@@ -155,7 +177,7 @@ class CustomClient(discord.Client):
         # The event doesn't fire (maybe because of wrong roles/permissions)
         if message.type == discord.MessageType.new_member:
             await message.author.send(
-                MARHABAN_MESSAGE.format(
+                content=MARHABAN_MESSAGE.format(
                     user_mention=message.author.mention,
                     presentation_channel_mention=self.presentation_channel.mention,
                 )
@@ -168,7 +190,7 @@ class CustomClient(discord.Client):
         ):
             await message.author.add_roles(self.member_role)
             await message.author.send(
-                GRANTED_MESSAGE.format(
+                content=GRANTED_MESSAGE.format(
                     rules_channel_mention=self.rules_channel.mention,
                 )
             )
