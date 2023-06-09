@@ -122,6 +122,13 @@ class CustomClient(discord.Client):
         channel = await self.guild.fetch_channel(payload.channel_id)
         return await channel.fetch_message(payload.message_id)
 
+    async def get_dm_message(
+        self,
+        payload: discord.RawReactionActionEvent,
+    ) -> discord.Message:
+        dm_channel = await self.fetch_channel(payload.channel_id)
+        return await dm_channel.fetch_message(payload.message_id)
+
     async def get_user(self, user_id: int) -> Optional[discord.Member]:
         return await self.guild.fetch_member(user_id)
 
@@ -144,12 +151,21 @@ class CustomClient(discord.Client):
                 if not payload.member:
                     return
 
-                await payload.member.send(
+                dm_message = await payload.member.send(
                     content=SAVED_MESSAGE_TEMPLATE.format(
                         message_content=message.content.replace("\n", "\n> "),
                         message_link=message.jump_url,
                     )
                 )
+                await dm_message.add_reaction("❌")
+
+            case "❌":
+                dm_message = await self.get_dm_message(payload=payload)
+
+                if dm_message.author.id == payload.user_id:
+                    return
+
+                await dm_message.delete()
 
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
         match payload.emoji.name:
