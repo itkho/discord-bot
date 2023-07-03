@@ -125,8 +125,10 @@ class CustomClient(discord.Client):
     async def get_dm_message(
         self,
         payload: discord.RawReactionActionEvent,
-    ) -> discord.Message:
+    ) -> discord.Message | None:
         dm_channel = await self.fetch_channel(payload.channel_id)
+        if not isinstance(dm_channel, discord.channel.DMChannel):
+            return
         return await dm_channel.fetch_message(payload.message_id)
 
     async def get_user(self, user_id: int) -> Optional[discord.Member]:
@@ -161,6 +163,9 @@ class CustomClient(discord.Client):
 
             case "❌":
                 dm_message = await self.get_dm_message(payload=payload)
+
+                if not dm_message:
+                    return
 
                 if dm_message.author.id == payload.user_id:
                     return
