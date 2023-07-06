@@ -213,6 +213,7 @@ class CustomClient(discord.Client):
             await message.author.send(
                 content=GRANTED_MESSAGE.format(
                     rules_channel_mention=self.rules_channel.mention,
+                    roles_channel_mention=self.roles_channel.mention,
                 )
             )
             return
