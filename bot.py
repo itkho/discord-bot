@@ -4,6 +4,7 @@ import discord
 from dotenv import load_dotenv
 
 from consts import (
+    COMMAND_PREFIX,
     DISCORD_TOKEN,
     GRANTED_MESSAGE,
     GUILD_NAME,
@@ -14,11 +15,13 @@ from consts import (
     RULES_CHANNEL_NAME,
     SAVED_MESSAGE_TEMPLATE,
 )
+from helpers import get_message_id_from_link
+from tldr import summarise_chat
 
 load_dotenv()
 
 
-class CustomClient(discord.Client):
+class ItkhoClient(discord.Client):
     @property
     def guild(self) -> discord.Guild:
         if not hasattr(self, "_guild"):
@@ -95,6 +98,36 @@ class CustomClient(discord.Client):
                 raise ValueError("Rules channel should be of type 'TextChannel'")
             self._rules_channel = rules_channels[0]
         return self._rules_channel
+
+    # HACK: because on_message overwrite the command
+    # but I saw afterwards that it was possible: https://stackoverflow.com/a/67465330
+    # see here for commmand inside a Bot class: https://stackoverflow.com/a/67913136
+    async def run_command(self, message: discord.Message):
+        content_without_prefix = "".join(message.content.split(COMMAND_PREFIX)[1:])
+        content_without_prefix_split = content_without_prefix.split(" ")
+        command, content = content_without_prefix_split[0], "".join(
+            content_without_prefix_split[1:]
+        )
+
+        match command.lower():
+            case "tldr":
+                start_message_id = get_message_id_from_link(link=content)
+                counter = 0
+                chat = ""
+                messages = []
+                async for message in message.channel.history():
+                    counter += 1
+                    if counter == 1:
+                        # Skip the first one because it's the command itself
+                        continue
+                    messages.append(f"{message.author.name}: {message.content}\n")
+                    if message.id == start_message_id or counter > 200:
+                        break
+
+                # Reverse the list to have oldest messages first
+                messages.reverse()
+                summary = summarise_chat(chat="\n".join(messages))
+                await message.channel.send(content=summary)
 
     async def get_role(
         self,
@@ -191,6 +224,10 @@ class CustomClient(discord.Client):
         if message.author == self.user:
             return
 
+        if message.content.startswith(COMMAND_PREFIX):
+            await self.run_command(message=message)
+            return
+
         if message.channel != self.presentation_channel:
             return
 
@@ -219,12 +256,12 @@ class CustomClient(discord.Client):
             return
 
 
-def run_disord_client():
+def run_discord_client():
     intents = discord.Intents.default()
     intents.message_content = True
-    client = CustomClient(intents=intents)
+    client = ItkhoClient(intents=intents)
     client.run(DISCORD_TOKEN)
 
 
 if __name__ == "__main__":
-    run_disord_client()
+    run_discord_client()

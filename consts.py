@@ -20,7 +20,15 @@ if not (SAVED_MESSAGE_TEMPLATE := os.getenv("SAVED_MESSAGE_TEMPLATE", "")):
     raise ValueError("No 'SAVED_MESSAGE_TEMPLATE' variable environment found")
 
 
+# Channels
 PRESENTATION_CHANNEL_NAME = "presentation"
 RULES_CHANNEL_NAME = "rules"
 MEMBER_ROLE_NAME = "member"
 ROLES_CHANNEL_NAME = "roles"
+
+# OpenIA
+# MODEL = "ada"
+MODEL = "gpt-3.5-turbo-16k"
+
+# Others
+COMMAND_PREFIX = "$"
