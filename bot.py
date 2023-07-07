@@ -1,7 +1,6 @@
-from typing import Optional
+from typing import Any, Optional
 
 import discord
-from dotenv import load_dotenv
 
 from consts import (
     COMMAND_PREFIX,
@@ -18,10 +17,14 @@ from consts import (
 from helpers import get_message_id_from_link
 from tldr import summarise_chat
 
-load_dotenv()
-
 
 class ItkhoClient(discord.Client):
+    def __init__(self, **options: Any) -> None:
+        intents = discord.Intents.default()
+        intents.message_content = True
+        super().__init__(intents=intents, **options)
+        # print(self.guild)
+
     @property
     def guild(self) -> discord.Guild:
         if not hasattr(self, "_guild"):
@@ -257,9 +260,7 @@ class ItkhoClient(discord.Client):
 
 
 def run_discord_client():
-    intents = discord.Intents.default()
-    intents.message_content = True
-    client = ItkhoClient(intents=intents)
+    client = ItkhoClient()
     client.run(DISCORD_TOKEN)
 
 

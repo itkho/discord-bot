@@ -12,7 +12,7 @@ def summarise_chat(chat: str) -> str:
             messages=[
                 {
                     "role": "system",
-                    "content": "Tu es un bot sur un server discord, et tu résumes les conversations que l'on te fourni en 3 à 5 puces maximum",
+                    "content": "Tu es un bot sur un server discord, et tu résumes les points importants de la conversation que l'on te fourni en 3 à 5 puces MAXIMUM",
                     # "Englobe de '**' les parties importants (ex: **bold**)""  <-- doesn't work
                 },
                 {"role": "user", "content": chat},

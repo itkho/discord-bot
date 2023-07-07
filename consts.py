@@ -27,7 +27,6 @@ MEMBER_ROLE_NAME = "member"
 ROLES_CHANNEL_NAME = "roles"
 
 # OpenIA
-# MODEL = "ada"
 MODEL = "gpt-3.5-turbo-16k"
 
 # Others
