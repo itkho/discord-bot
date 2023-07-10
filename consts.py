@@ -19,6 +19,12 @@ if not (GRANTED_MESSAGE := os.getenv("GRANTED_MESSAGE", "")):
 if not (SAVED_MESSAGE_TEMPLATE := os.getenv("SAVED_MESSAGE_TEMPLATE", "")):
     raise ValueError("No 'SAVED_MESSAGE_TEMPLATE' variable environment found")
 
+if not (UNANSWERED_MESSAGE_TEMPLATE := os.getenv("UNANSWERED_MESSAGE_TEMPLATE", "")):
+    raise ValueError("No 'UNANSWERED_MESSAGE_TEMPLATE' variable environment found")
+
+if not (MODERATOR_USERNAME := os.getenv("MODERATOR_USERNAME", "")):
+    raise ValueError("No 'MODERATOR_USERNAME' variable environment found")
+
 
 # Channels
 PRESENTATION_CHANNEL_NAME = "presentation"

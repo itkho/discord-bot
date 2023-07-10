@@ -1,6 +1,8 @@
 from typing import Any, Optional
 
+import arrow
 import discord
+from discord.ext import tasks
 
 from consts import (
     COMMAND_PREFIX,
@@ -9,10 +11,12 @@ from consts import (
     GUILD_NAME,
     MARHABAN_MESSAGE,
     MEMBER_ROLE_NAME,
+    MODERATOR_USERNAME,
     PRESENTATION_CHANNEL_NAME,
     ROLES_CHANNEL_NAME,
     RULES_CHANNEL_NAME,
     SAVED_MESSAGE_TEMPLATE,
+    UNANSWERED_MESSAGE_TEMPLATE,
 )
 from helpers import get_message_id_from_link
 from tldr import summarise_chat
@@ -22,6 +26,7 @@ class ItkhoClient(discord.Client):
     def __init__(self, **options: Any) -> None:
         intents = discord.Intents.default()
         intents.message_content = True
+        intents.members = True
         super().__init__(intents=intents, **options)
 
     @property
@@ -101,6 +106,43 @@ class ItkhoClient(discord.Client):
             self._rules_channel = rules_channels[0]
         return self._rules_channel
 
+    @property
+    def moderator(self) -> discord.Member:
+        if not hasattr(self, "_moderator"):
+            moderators = [m for m in self.guild.members if m.name == MODERATOR_USERNAME]
+            if len(moderators) != 1:
+                raise ValueError(
+                    f"There must be one and only one '{MODERATOR_USERNAME}' member."
+                )
+            self._moderator = moderators[0]
+        return self._moderator
+
+    @tasks.loop(hours=24)
+    async def check_unanswered_messages(self):
+        for channel in self.guild.channels:
+            if not isinstance(channel, discord.TextChannel):
+                continue
+            async for message in channel.history(limit=1):
+                if "?" not in message.content:
+                    continue
+                if "✅" in [r.emoji for r in message.reactions]:
+                    continue
+                if message.author is self.moderator:
+                    continue
+                if message.created_at > arrow.now().shift(days=-1).datetime:
+                    continue
+                # TODO: abstract this part of sending DM from bot
+                dm_message = await self.moderator.send(
+                    content=UNANSWERED_MESSAGE_TEMPLATE.format(
+                        message_content=message.content.replace("\n", "\n> "),
+                        message_link=message.jump_url,
+                    )
+                )
+                await dm_message.add_reaction("❌")
+
+    async def on_ready(self):
+        await self.check_unanswered_messages.start()
+
     # HACK: because on_message overwrite the command
     # but I saw afterwards that it was possible: https://stackoverflow.com/a/67465330
     # see here for commmand inside a Bot class: https://stackoverflow.com/a/67913136
@@ -115,7 +157,6 @@ class ItkhoClient(discord.Client):
             case "tldr":
                 start_message_id = get_message_id_from_link(link=content)
                 counter = 0
-                chat = ""
                 messages = []
                 async for message in message.channel.history():
                     counter += 1
@@ -153,8 +194,10 @@ class ItkhoClient(discord.Client):
     async def get_message(
         self,
         payload: discord.RawReactionActionEvent,
-    ) -> discord.Message:
+    ) -> Optional[discord.Message]:
         channel = await self.guild.fetch_channel(payload.channel_id)
+        if not isinstance(channel, discord.TextChannel):
+            return
         return await channel.fetch_message(payload.message_id)
 
     async def get_dm_message(
@@ -185,7 +228,7 @@ class ItkhoClient(discord.Client):
             case "💾":
                 message = await self.get_message(payload=payload)
 
-                if not payload.member:
+                if not message or not payload.member:
                     return
 
                 dm_message = await payload.member.send(
