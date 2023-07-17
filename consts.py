@@ -22,6 +22,11 @@ if not (SAVED_MESSAGE_TEMPLATE := os.getenv("SAVED_MESSAGE_TEMPLATE", "")):
 if not (UNANSWERED_MESSAGE_TEMPLATE := os.getenv("UNANSWERED_MESSAGE_TEMPLATE", "")):
     raise ValueError("No 'UNANSWERED_MESSAGE_TEMPLATE' variable environment found")
 
+if not (
+    EMOJI_REMOVED_MESSAGE_TEMPLATE := os.getenv("EMOJI_REMOVED_MESSAGE_TEMPLATE", "")
+):
+    raise ValueError("No 'EMOJI_REMOVED_MESSAGE_TEMPLATE' variable environment found")
+
 if not (MODERATOR_USERNAME := os.getenv("MODERATOR_USERNAME", "")):
     raise ValueError("No 'MODERATOR_USERNAME' variable environment found")
 

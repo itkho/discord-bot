@@ -1,3 +1,4 @@
+import re
 from typing import Any, Optional
 
 import arrow
@@ -7,6 +8,7 @@ from discord.ext import tasks
 from consts import (
     COMMAND_PREFIX,
     DISCORD_TOKEN,
+    EMOJI_REMOVED_MESSAGE_TEMPLATE,
     GRANTED_MESSAGE,
     GUILD_NAME,
     MARHABAN_MESSAGE,
@@ -123,7 +125,7 @@ class ItkhoClient(discord.Client):
             if not isinstance(channel, discord.TextChannel):
                 continue
             async for message in channel.history(limit=1):
-                if "?" not in message.content:
+                if not re.search("\?(?!\w)", message.content):
                     continue
                 if "✅" in [r.emoji for r in message.reactions]:
                     continue
@@ -249,6 +251,21 @@ class ItkhoClient(discord.Client):
                     return
 
                 await dm_message.delete()
+
+            case "👋" | "🙏" | "🤞" | "🖕":
+                message = await self.get_message(payload=payload)
+
+                if not message or not payload.member:
+                    return
+                
+                await message.clear_reaction(emoji=payload.emoji)
+
+                dm_message = await payload.member.send(
+                    content=EMOJI_REMOVED_MESSAGE_TEMPLATE.format(
+                        emoji=payload.emoji.name,
+                    )
+                )
+                await dm_message.add_reaction("❌")
 
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
         match payload.emoji.name:
