@@ -257,7 +257,7 @@ class ItkhoClient(discord.Client):
 
                 if not message or not payload.member:
                     return
-                
+
                 await message.clear_reaction(emoji=payload.emoji)
 
                 dm_message = await payload.member.send(
@@ -302,6 +302,7 @@ class ItkhoClient(discord.Client):
                     presentation_channel_mention=self.presentation_channel.mention,
                 )
             )
+            await message.add_reaction("✅")
             return
 
         if (
@@ -315,6 +316,7 @@ class ItkhoClient(discord.Client):
                     roles_channel_mention=self.roles_channel.mention,
                 )
             )
+            await message.add_reaction("✅")
             return
 
 
