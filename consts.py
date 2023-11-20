@@ -32,10 +32,10 @@ if not (MODERATOR_USERNAME := os.getenv("MODERATOR_USERNAME", "")):
 
 
 # Channels
-PRESENTATION_CHANNEL_NAME = "presentation"
-RULES_CHANNEL_NAME = "rules"
+PRESENTATION_CHANNEL_NAME = "présentation-🎙"
+RULES_CHANNEL_NAME = "règlement-📜"
+ROLES_CHANNEL_NAME = "roles-🏷"
 MEMBER_ROLE_NAME = "member"
-ROLES_CHANNEL_NAME = "roles"
 
 # OpenIA
 MODEL = "gpt-3.5-turbo-16k"
