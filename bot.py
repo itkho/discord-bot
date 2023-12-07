@@ -156,6 +156,7 @@ class ItkhoClient(discord.Client):
                 message_to_send = None
                 if user.joined_at < arrow.now().shift(weeks=-3).datetime:
                     message_to_send = GOODBYE_MESSAGE
+                    # TODO: remove the user from the server
                 elif user.joined_at < arrow.now().shift(weeks=-2).datetime:
                     message_to_send = REMINDER_2_MESSAGE.format(
                         presentation_channel_mention=self.presentation_channel.mention,
