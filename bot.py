@@ -10,7 +10,6 @@ from consts import (
     DEBUG_MESSAGE_TEMPLATE,
     DISCORD_TOKEN,
     EMOJI_REMOVED_MESSAGE_TEMPLATE,
-    GOODBYE_MESSAGE,
     GRANTED_MESSAGE,
     GUILD_NAME,
     MARHABAN_MESSAGE,
@@ -18,7 +17,6 @@ from consts import (
     MODERATOR_USERNAME,
     PRESENTATION_CHANNEL_NAME,
     REMINDER_1_MESSAGE,
-    REMINDER_2_MESSAGE,
     ROLES_CHANNEL_NAME,
     RULES_CHANNEL_NAME,
     SAVED_MESSAGE_TEMPLATE,
@@ -154,14 +152,15 @@ class ItkhoClient(discord.Client):
                     continue
 
                 message_to_send = None
-                if user.joined_at < arrow.now().shift(weeks=-3).datetime:
-                    message_to_send = GOODBYE_MESSAGE
-                    # TODO: remove the user from the server
-                elif user.joined_at < arrow.now().shift(weeks=-2).datetime:
-                    message_to_send = REMINDER_2_MESSAGE.format(
-                        presentation_channel_mention=self.presentation_channel.mention,
-                    )
-                elif user.joined_at < arrow.now().shift(weeks=-1).datetime:
+                # if user.joined_at < arrow.now().shift(weeks=-3).datetime:
+                #     message_to_send = GOODBYE_MESSAGE
+                #     # TODO: remove the user from the server
+                # elif user.joined_at < arrow.now().shift(weeks=-2).datetime:
+                #     message_to_send = REMINDER_2_MESSAGE.format(
+                #         presentation_channel_mention=self.presentation_channel.mention,
+                #     )
+                # el
+                if user.joined_at < arrow.now().shift(weeks=-1).datetime:
                     message_to_send = REMINDER_1_MESSAGE.format(
                         presentation_channel_mention=self.presentation_channel.mention,
                     )
