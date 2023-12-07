@@ -13,6 +13,15 @@ if not (GUILD_NAME := os.getenv("GUILD_NAME", "")):
 if not (MARHABAN_MESSAGE := os.getenv("MARHABAN_MESSAGE", "")):
     raise ValueError("No 'MARHABAN_MESSAGE' variable environment found")
 
+if not (REMINDER_1_MESSAGE := os.getenv("REMINDER_1_MESSAGE", "")):
+    raise ValueError("No 'REMINDER_1_MESSAGE' variable environment found")
+
+if not (REMINDER_2_MESSAGE := os.getenv("REMINDER_2_MESSAGE", "")):
+    raise ValueError("No 'REMINDER_2_MESSAGE' variable environment found")
+
+if not (GOODBYE_MESSAGE := os.getenv("GOODBYE_MESSAGE", "")):
+    raise ValueError("No 'GOODBYE_MESSAGE' variable environment found")
+
 if not (GRANTED_MESSAGE := os.getenv("GRANTED_MESSAGE", "")):
     raise ValueError("No 'GRANTED_MESSAGE' variable environment found")
 
@@ -21,6 +30,9 @@ if not (SAVED_MESSAGE_TEMPLATE := os.getenv("SAVED_MESSAGE_TEMPLATE", "")):
 
 if not (UNANSWERED_MESSAGE_TEMPLATE := os.getenv("UNANSWERED_MESSAGE_TEMPLATE", "")):
     raise ValueError("No 'UNANSWERED_MESSAGE_TEMPLATE' variable environment found")
+
+if not (DEBUG_MESSAGE_TEMPLATE := os.getenv("DEBUG_MESSAGE_TEMPLATE", "")):
+    raise ValueError("No 'DEBUG_MESSAGE_TEMPLATE' variable environment found")
 
 if not (
     EMOJI_REMOVED_MESSAGE_TEMPLATE := os.getenv("EMOJI_REMOVED_MESSAGE_TEMPLATE", "")

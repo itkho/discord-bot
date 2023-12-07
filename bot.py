@@ -7,14 +7,18 @@ from discord.ext import tasks
 
 from consts import (
     COMMAND_PREFIX,
+    DEBUG_MESSAGE_TEMPLATE,
     DISCORD_TOKEN,
     EMOJI_REMOVED_MESSAGE_TEMPLATE,
+    GOODBYE_MESSAGE,
     GRANTED_MESSAGE,
     GUILD_NAME,
     MARHABAN_MESSAGE,
     MEMBER_ROLE_NAME,
     MODERATOR_USERNAME,
     PRESENTATION_CHANNEL_NAME,
+    REMINDER_1_MESSAGE,
+    REMINDER_2_MESSAGE,
     ROLES_CHANNEL_NAME,
     RULES_CHANNEL_NAME,
     SAVED_MESSAGE_TEMPLATE,
@@ -142,8 +146,39 @@ class ItkhoClient(discord.Client):
                 )
                 await dm_message.add_reaction("❌")
 
+    @tasks.loop(hours=24 * 7)
+    async def check_not_introduced_user(self):
+        for user in self.guild.members:
+            if self.member_role not in user.roles:
+                if user.bot:
+                    continue
+
+                message_to_send = None
+                if user.joined_at < arrow.now().shift(weeks=-3).datetime:
+                    message_to_send = GOODBYE_MESSAGE
+                elif user.joined_at < arrow.now().shift(weeks=-2).datetime:
+                    message_to_send = REMINDER_2_MESSAGE.format(
+                        presentation_channel_mention=self.presentation_channel.mention,
+                    )
+                elif user.joined_at < arrow.now().shift(weeks=-1).datetime:
+                    message_to_send = REMINDER_1_MESSAGE.format(
+                        presentation_channel_mention=self.presentation_channel.mention,
+                    )
+
+                if message_to_send:
+                    await user.send(content=message_to_send)
+                    # TODO: abstract this part of sending DM from bot
+                    dm_message = await self.moderator.send(
+                        content=DEBUG_MESSAGE_TEMPLATE.format(
+                            user_mention=user.mention,
+                            message_content=message_to_send.replace("\n", "\n> "),
+                        )
+                    )
+                    await dm_message.add_reaction("❌")
+
     async def on_ready(self):
         await self.check_unanswered_messages.start()
+        await self.check_not_introduced_user.start()
 
     # HACK: because on_message overwrite the command
     # but I saw afterwards that it was possible: https://stackoverflow.com/a/67465330
@@ -316,7 +351,7 @@ class ItkhoClient(discord.Client):
                     roles_channel_mention=self.roles_channel.mention,
                 )
             )
-            await message.add_reaction("✅")
+            await message.add_reaction("🤝")
             return
 
 
