@@ -129,7 +129,7 @@ class ItkhoClient(discord.Client):
             async for message in channel.history(limit=1):
                 if not re.search("\?(?!\w)", message.content):
                     continue
-                if "✅" in [r.emoji for r in message.reactions]:
+                if message.reactions:
                     continue
                 if message.created_at > arrow.now().shift(days=-1).datetime:
                     continue
