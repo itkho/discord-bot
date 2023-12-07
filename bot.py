@@ -131,18 +131,13 @@ class ItkhoClient(discord.Client):
                     continue
                 if "✅" in [r.emoji for r in message.reactions]:
                     continue
-                if message.author is self.moderator:
-                    continue
                 if message.created_at > arrow.now().shift(days=-1).datetime:
                     continue
-                # TODO: abstract this part of sending DM from bot
-                dm_message = await self.moderator.send(
+                await message.reply(
                     content=UNANSWERED_MESSAGE_TEMPLATE.format(
-                        message_content=message.content.replace("\n", "\n> "),
-                        message_link=message.jump_url,
+                        user_name=message.author.name,
                     )
                 )
-                await dm_message.add_reaction("❌")
 
     @tasks.loop(hours=24 * 7)
     async def check_not_introduced_user(self):
@@ -178,7 +173,7 @@ class ItkhoClient(discord.Client):
 
     async def on_ready(self):
         await self.check_unanswered_messages.start()
-        await self.check_not_introduced_user.start()
+        # await self.check_not_introduced_user.start()
 
     # HACK: because on_message overwrite the command
     # but I saw afterwards that it was possible: https://stackoverflow.com/a/67465330
