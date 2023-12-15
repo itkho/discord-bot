@@ -139,8 +139,7 @@ class ItkhoClient(discord.Client):
                     )
                 )
 
-    @tasks.loop(minutes=2)
-    # @tasks.loop(hours=24 * 7)
+    @tasks.loop(hours=24 * 7)
     async def check_not_introduced_user(self):
         for user in self.guild.members:
             if self.member_role not in user.roles:
@@ -163,10 +162,11 @@ class ItkhoClient(discord.Client):
                     )
 
                 if message_to_send:
-                    # await user.send(content=message_to_send)
+                    await user.send(content=message_to_send)
                     # TODO: abstract this part of sending DM from bot
                     dm_message = await self.moderator.send(
                         content=DEBUG_MESSAGE_TEMPLATE.format(
+                            user_name=user.name,
                             user_mention=user.mention,
                             message_content=message_to_send.replace("\n", "\n> "),
                         )
@@ -174,8 +174,8 @@ class ItkhoClient(discord.Client):
                     await dm_message.add_reaction("❌")
 
     async def on_ready(self):
-        await self.check_unanswered_messages.start()
-        await self.check_not_introduced_user.start()
+        self.check_unanswered_messages.start()
+        self.check_not_introduced_user.start()
 
     # HACK: because on_message overwrite the command
     # but I saw afterwards that it was possible: https://stackoverflow.com/a/67465330
