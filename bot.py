@@ -1,4 +1,5 @@
 import re
+from time import sleep
 from typing import Any, Optional
 
 import arrow
@@ -162,16 +163,20 @@ class ItkhoClient(discord.Client):
                     )
 
                 if message_to_send:
-                    await user.send(content=message_to_send)
-                    # TODO: abstract this part of sending DM from bot
-                    dm_message = await self.moderator.send(
-                        content=DEBUG_MESSAGE_TEMPLATE.format(
-                            user_name=user.name,
-                            user_mention=user.mention,
-                            message_content=message_to_send.replace("\n", "\n> "),
+                    try:
+                        await user.send(content=message_to_send)
+                        # TODO: abstract this part of sending DM from bot
+                        dm_message = await self.moderator.send(
+                            content=DEBUG_MESSAGE_TEMPLATE.format(
+                                user_name=user.name,
+                                user_mention=user.mention,
+                                message_content=message_to_send.replace("\n", "\n> "),
+                            )
                         )
-                    )
-                    await dm_message.add_reaction("❌")
+                        await dm_message.add_reaction("❌")
+                        sleep(10)
+                    except:
+                        continue
 
     async def on_ready(self):
         self.check_unanswered_messages.start()
