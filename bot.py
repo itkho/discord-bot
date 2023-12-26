@@ -11,6 +11,7 @@ from consts import (
     DEBUG_MESSAGE_TEMPLATE,
     DISCORD_TOKEN,
     EMOJI_REMOVED_MESSAGE_TEMPLATE,
+    GOODBYE_MESSAGE,
     GRANTED_MESSAGE,
     GUILD_NAME,
     MARHABAN_MESSAGE,
@@ -145,16 +146,14 @@ class ItkhoClient(discord.Client):
     async def check_not_introduced_user(self):
         for user in self.guild.members:
             if self.member_role not in user.roles:
-                if user.bot:
+                if user.bot or not user.joined_at:
                     continue
 
                 message_to_send = None
-                # if user.joined_at < arrow.now().shift(weeks=-3).datetime:
-                #     message_to_send = GOODBYE_MESSAGE
-                #     # TODO: remove the user from the server
-                #     # await user.kick()
-                # el
-                if user.joined_at < arrow.now().shift(weeks=-2).datetime:
+                if user.joined_at < arrow.now().shift(weeks=-3).datetime:
+                    message_to_send = GOODBYE_MESSAGE
+                    await user.kick()
+                elif user.joined_at < arrow.now().shift(weeks=-2).datetime:
                     message_to_send = REMINDER_2_MESSAGE.format(
                         presentation_channel_mention=self.presentation_channel.mention,
                     )
@@ -189,8 +188,9 @@ class ItkhoClient(discord.Client):
     async def run_command(self, message: discord.Message):
         content_without_prefix = "".join(message.content.split(COMMAND_PREFIX)[1:])
         content_without_prefix_split = content_without_prefix.split(" ")
-        command, content = content_without_prefix_split[0], "".join(
-            content_without_prefix_split[1:]
+        command, content = (
+            content_without_prefix_split[0],
+            "".join(content_without_prefix_split[1:]),
         )
 
         match command.lower():
