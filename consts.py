@@ -31,6 +31,16 @@ if not (SAVED_MESSAGE_TEMPLATE := os.getenv("SAVED_MESSAGE_TEMPLATE", "")):
 if not (UNANSWERED_MESSAGE_TEMPLATE := os.getenv("UNANSWERED_MESSAGE_TEMPLATE", "")):
     raise ValueError("No 'UNANSWERED_MESSAGE_TEMPLATE' variable environment found")
 
+if not (
+    TEMPLATE_WITH_USER_QUESTIONED := os.getenv("TEMPLATE_WITH_USER_QUESTIONED", "")
+):
+    raise ValueError("No 'TEMPLATE_WITH_USER_QUESTIONED' variable environment found")
+
+if not (
+    TEMPLATE_WITH_CHANNEL_MODERATOR := os.getenv("TEMPLATE_WITH_CHANNEL_MODERATOR", "")
+):
+    raise ValueError("No 'TEMPLATE_WITH_CHANNEL_MODERATOR' variable environment found")
+
 if not (DEBUG_MESSAGE_TEMPLATE := os.getenv("DEBUG_MESSAGE_TEMPLATE", "")):
     raise ValueError("No 'DEBUG_MESSAGE_TEMPLATE' variable environment found")
 
@@ -47,7 +57,11 @@ if not (MODERATOR_USERNAME := os.getenv("MODERATOR_USERNAME", "")):
 PRESENTATION_CHANNEL_NAME = "présentation-🎙"
 RULES_CHANNEL_NAME = "règlement-📜"
 ROLES_CHANNEL_NAME = "roles-🏷"
-MEMBER_ROLE_NAME = "member"
+FAQ_CHANNEL_NAME = "faq-❔"
+
+# Roles
+PRESENTATION_DONE_ROLE_NAME = "presentation-done-🎙"
+RULES_ACCEPTED_ROLE_NAME = "rules-accepted-📜"
 
 # OpenIA
 MODEL = "gpt-3.5-turbo-16k"

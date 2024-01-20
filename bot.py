@@ -1,6 +1,6 @@
 import re
 from time import sleep
-from typing import Any, Optional
+from typing import Any
 
 import arrow
 import discord
@@ -11,18 +11,22 @@ from consts import (
     DEBUG_MESSAGE_TEMPLATE,
     DISCORD_TOKEN,
     EMOJI_REMOVED_MESSAGE_TEMPLATE,
+    FAQ_CHANNEL_NAME,
     GOODBYE_MESSAGE,
     GRANTED_MESSAGE,
     GUILD_NAME,
     MARHABAN_MESSAGE,
-    MEMBER_ROLE_NAME,
     MODERATOR_USERNAME,
     PRESENTATION_CHANNEL_NAME,
+    PRESENTATION_DONE_ROLE_NAME,
     REMINDER_1_MESSAGE,
     REMINDER_2_MESSAGE,
     ROLES_CHANNEL_NAME,
+    RULES_ACCEPTED_ROLE_NAME,
     RULES_CHANNEL_NAME,
     SAVED_MESSAGE_TEMPLATE,
+    TEMPLATE_WITH_CHANNEL_MODERATOR,
+    TEMPLATE_WITH_USER_QUESTIONED,
     UNANSWERED_MESSAGE_TEMPLATE,
 )
 from helpers import get_message_id_from_link
@@ -48,19 +52,34 @@ class ItkhoClient(discord.Client):
         return self._guild
 
     @property
-    def member_role(self) -> discord.Role:
-        if not hasattr(self, "_member_role"):
-            member_roles = [
+    def presentation_done_role(self) -> discord.Role:
+        if not hasattr(self, "_presentation_done_role"):
+            presentation_done_roles = [
                 r
                 for r in self.guild.roles
-                if r.name.lower() == MEMBER_ROLE_NAME.lower()
+                if r.name.lower() == PRESENTATION_DONE_ROLE_NAME.lower()
             ]
-            if len(member_roles) != 1:
+            if len(presentation_done_roles) != 1:
                 raise ValueError(
-                    f"There must be one and only one '{MEMBER_ROLE_NAME}' role."
+                    f"There must be one and only one '{PRESENTATION_DONE_ROLE_NAME}' role."
                 )
-            self._member_role = member_roles[0]
-        return self._member_role
+            self._presentation_done_role = presentation_done_roles[0]
+        return self._presentation_done_role
+
+    @property
+    def rules_accepted_role(self) -> discord.Role:
+        if not hasattr(self, "_rules_accepted_role"):
+            rules_accepted_roles = [
+                r
+                for r in self.guild.roles
+                if r.name.lower() == RULES_ACCEPTED_ROLE_NAME.lower()
+            ]
+            if len(rules_accepted_roles) != 1:
+                raise ValueError(
+                    f"There must be one and only one '{RULES_ACCEPTED_ROLE_NAME}' role."
+                )
+            self._rules_accepted_role = rules_accepted_roles[0]
+        return self._rules_accepted_role
 
     @property
     def presentation_channel(self) -> discord.TextChannel:
@@ -114,6 +133,23 @@ class ItkhoClient(discord.Client):
         return self._rules_channel
 
     @property
+    def faq_channel(self) -> discord.TextChannel:
+        if not hasattr(self, "_faq_channel"):
+            faq_channels = [
+                c
+                for c in self.guild.channels
+                if c.name.lower() == FAQ_CHANNEL_NAME.lower()
+            ]
+            if len(faq_channels) != 1:
+                raise ValueError(
+                    f"There must be one and only one '{FAQ_CHANNEL_NAME}' channel."
+                )
+            if not isinstance(faq_channels[0], discord.TextChannel):
+                raise ValueError("Faq channel should be of type 'TextChannel'")
+            self._faq_channel = faq_channels[0]
+        return self._faq_channel
+
+    @property
     def moderator(self) -> discord.Member:
         if not hasattr(self, "_moderator"):
             moderators = [m for m in self.guild.members if m.name == MODERATOR_USERNAME]
@@ -130,22 +166,37 @@ class ItkhoClient(discord.Client):
             if not isinstance(channel, discord.TextChannel):
                 continue
             async for message in channel.history(limit=1):
-                if not re.search("\?(?!\w)", message.content):
+                if not re.search(r"\?(?!\w)", message.content):
                     continue
                 if message.reactions:
                     continue
                 if message.created_at > arrow.now().shift(days=-1).datetime:
                     continue
-                await message.reply(
-                    content=UNANSWERED_MESSAGE_TEMPLATE.format(
-                        user_name=message.author.name,
-                    )
+
+                content = UNANSWERED_MESSAGE_TEMPLATE.format(
+                    user_mention=message.author.mention,
                 )
+                if (
+                    message.reference
+                    and isinstance(message.reference.resolved, discord.Message)
+                    and message.reference.resolved.author
+                ):
+                    content += TEMPLATE_WITH_USER_QUESTIONED.format(
+                        user_questioned_mention=message.reference.resolved.author.mention,
+                    )
+
+                channel_moderator = await self.get_channel_moderator(channel=channel)
+                if channel_moderator:
+                    content += TEMPLATE_WITH_CHANNEL_MODERATOR.format(
+                        channel_moderator_mention=channel_moderator.mention,
+                    )
+
+                await message.reply(content=content)
 
     @tasks.loop(hours=24 * 7)
     async def check_not_introduced_user(self):
         for user in self.guild.members:
-            if self.member_role not in user.roles:
+            if self.presentation_done_role not in user.roles:
                 if user.bot or not user.joined_at:
                     continue
 
@@ -197,7 +248,7 @@ class ItkhoClient(discord.Client):
             case "tldr":
                 start_message_id = get_message_id_from_link(link=content)
                 counter = 0
-                messages = []
+                messages: list[str] = []
                 async for message in message.channel.history():
                     counter += 1
                     if counter == 1:
@@ -211,14 +262,13 @@ class ItkhoClient(discord.Client):
                 messages.reverse()
                 summary = summarise_chat(chat="\n".join(messages))
                 await message.channel.send(content=summary)
+            case _:
+                pass
 
-    async def get_role(
+    async def get_wanted_role_from_reaction(
         self,
         payload: discord.RawReactionActionEvent,
-    ) -> Optional[discord.Role]:
-        if payload.channel_id != self.roles_channel.id:
-            return
-
+    ) -> discord.Role | None:
         message = await self.roles_channel.fetch_message(payload.message_id)
 
         if not message.role_mentions:
@@ -234,13 +284,13 @@ class ItkhoClient(discord.Client):
     async def get_message(
         self,
         payload: discord.RawReactionActionEvent,
-    ) -> Optional[discord.Message]:
+    ) -> discord.Message | None:
         channel = await self.guild.fetch_channel(payload.channel_id)
         if not isinstance(channel, discord.TextChannel):
             return
         return await channel.fetch_message(payload.message_id)
 
-    async def get_dm_message(
+    async def get_dm_message_from_reaction(
         self,
         payload: discord.RawReactionActionEvent,
     ) -> discord.Message | None:
@@ -249,21 +299,42 @@ class ItkhoClient(discord.Client):
             return
         return await dm_channel.fetch_message(payload.message_id)
 
-    async def get_user(self, user_id: int) -> Optional[discord.Member]:
-        return await self.guild.fetch_member(user_id)
+    async def get_member(self, user_id: int) -> discord.Member | None:
+        try:
+            return await self.guild.fetch_member(user_id)
+        except discord.NotFound:
+            return None
+
+    async def get_channel_moderator(
+        self, channel: discord.TextChannel
+    ) -> discord.Member | None:
+        if not channel.topic:
+            return None
+
+        match = re.search(r"channel_moderator:@(\w+\.\w+)", channel.topic)
+        if match:
+            moderator_username = match.group(1)
+            channel_moderator = discord.utils.get(
+                self.guild.members, name=moderator_username
+            )
+            return channel_moderator
+        else:
+            return None
 
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         match payload.emoji.name:
             case "✅":
-                role = await self.get_role(payload=payload)
-
-                if not role:
-                    return
-
                 if not payload.member:
                     return
 
-                await payload.member.add_roles(role)
+                if payload.channel_id == self.roles_channel.id:
+                    if role := await self.get_wanted_role_from_reaction(
+                        payload=payload
+                    ):
+                        await payload.member.add_roles(role)
+
+                elif payload.channel_id == self.rules_channel.id:
+                    await payload.member.add_roles(self.rules_accepted_role)
 
             case "💾":
                 message = await self.get_message(payload=payload)
@@ -280,7 +351,7 @@ class ItkhoClient(discord.Client):
                 await dm_message.add_reaction("❌")
 
             case "❌":
-                dm_message = await self.get_dm_message(payload=payload)
+                dm_message = await self.get_dm_message_from_reaction(payload=payload)
 
                 if not dm_message:
                     return
@@ -305,20 +376,27 @@ class ItkhoClient(discord.Client):
                 )
                 await dm_message.add_reaction("❌")
 
+            case _:
+                pass
+
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
         match payload.emoji.name:
             case "✅":
-                role = await self.get_role(payload=payload)
+                if payload.channel_id == self.roles_channel.id:
+                    role = await self.get_wanted_role_from_reaction(payload=payload)
 
-                if not role:
-                    return
+                    if not role:
+                        return
 
-                # There is not member in the payload on the reaction removal
-                member = await self.get_user(user_id=payload.user_id)
-                if not member:
-                    return
+                    # There is not member in the payload on the reaction removal
+                    member = await self.get_member(user_id=payload.user_id)
+                    if not member:
+                        return
 
-                await member.remove_roles(role)
+                    await member.remove_roles(role)
+
+            case _:
+                pass
 
     async def on_message(self, message: discord.Message):
         if message.author == self.user:
@@ -338,6 +416,7 @@ class ItkhoClient(discord.Client):
                 content=MARHABAN_MESSAGE.format(
                     user_mention=message.author.mention,
                     presentation_channel_mention=self.presentation_channel.mention,
+                    rules_channel_mention=self.rules_channel.mention,
                 )
             )
             await message.add_reaction("✅")
@@ -345,13 +424,14 @@ class ItkhoClient(discord.Client):
 
         if (
             isinstance(message.author, discord.Member)
-            and self.member_role not in message.author.roles
+            and self.presentation_done_role not in message.author.roles
         ):
-            await message.author.add_roles(self.member_role)
+            await message.author.add_roles(self.presentation_done_role)
             await message.author.send(
                 content=GRANTED_MESSAGE.format(
                     rules_channel_mention=self.rules_channel.mention,
                     roles_channel_mention=self.roles_channel.mention,
+                    faq_channel_mention=self.faq_channel.mention,
                 )
             )
             await message.add_reaction("🤝")
