@@ -68,3 +68,6 @@ MODEL = "gpt-3.5-turbo-16k"
 
 # Others
 COMMAND_PREFIX = "$"
+
+JOIN_THREAD_MENTIONS_PREFIX = "Frères ajoutés au thread via le 👀 :"
+JOIN_THREAD_MENTIONS_SEPARATOR = " "

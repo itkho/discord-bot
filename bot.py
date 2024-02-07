@@ -15,6 +15,8 @@ from consts import (
     GOODBYE_MESSAGE,
     GRANTED_MESSAGE,
     GUILD_NAME,
+    JOIN_THREAD_MENTIONS_PREFIX,
+    JOIN_THREAD_MENTIONS_SEPARATOR,
     MARHABAN_MESSAGE,
     MODERATOR_USERNAME,
     PRESENTATION_CHANNEL_NAME,
@@ -29,8 +31,41 @@ from consts import (
     TEMPLATE_WITH_USER_QUESTIONED,
     UNANSWERED_MESSAGE_TEMPLATE,
 )
+from generate_title import generate_title
 from helpers import get_message_id_from_link
 from tldr import summarise_chat
+
+# TODO: réparer ça https://discord.com/channels/973876952693866526/1108136149307887677/1204557229429366804
+
+
+class EditThreadModal(discord.ui.Modal, title="Modifier le titre du thread"):
+    new_title = discord.ui.TextInput(label="Nouveau titre")
+
+    async def on_submit(self, interaction: discord.Interaction):
+        if not isinstance(interaction.channel, discord.Thread):
+            return
+        await interaction.channel.edit(name=self.new_title.value)
+        await interaction.response.defer()
+
+
+class EditThreadButtonView(discord.ui.View):
+    def __init__(self):
+        super().__init__()
+        self.add_item(self.EditThreadButton())
+
+    class EditThreadButton(discord.ui.Button):
+        def __init__(self):
+            super().__init__(
+                label="Modifier le titre du thread",
+                emoji="✏️",
+                style=discord.ButtonStyle.primary,
+            )
+
+        async def callback(self, interaction: discord.Interaction):
+            if not isinstance(interaction.channel, discord.Thread):
+                return
+
+            await interaction.response.send_modal(EditThreadModal())
 
 
 class ItkhoClient(discord.Client):
@@ -321,8 +356,61 @@ class ItkhoClient(discord.Client):
         else:
             return None
 
+    async def on_thread_create(self, thread: discord.Thread):
+        if not isinstance(thread.parent, discord.TextChannel):
+            return
+
+        message = await thread.parent.fetch_message(thread.id)
+        await message.add_reaction("👀")
+        await thread.send(
+            JOIN_THREAD_MENTIONS_PREFIX, silent=True, view=EditThreadButtonView()
+        )
+
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
+        if payload.member == self.user:
+            return
+
         match payload.emoji.name:
+            case "👀":
+                if not payload.member:
+                    return
+
+                message = await self.get_message(payload=payload)
+
+                if not message:
+                    return
+
+                if not isinstance(message.channel, discord.TextChannel):
+                    return
+
+                if message.author.bot:
+                    return
+
+                if not message.flags.has_thread:
+                    return
+
+                thread = message.channel.get_thread(message.id)
+                if not thread:
+                    return
+
+                messages = [m async for m in thread.history(limit=3, oldest_first=True)]
+
+                for message in messages:
+                    if (
+                        message.author == self.user
+                        and JOIN_THREAD_MENTIONS_PREFIX in message.content
+                    ):
+                        if payload.member.mention in message.content:
+                            break
+                        mentions = message.content.replace(
+                            JOIN_THREAD_MENTIONS_PREFIX, ""
+                        ).split(JOIN_THREAD_MENTIONS_SEPARATOR)
+                        mentions.append(payload.member.mention)
+                        await message.edit(
+                            content=JOIN_THREAD_MENTIONS_PREFIX
+                            + JOIN_THREAD_MENTIONS_SEPARATOR.join(mentions)
+                        )
+
             case "✅":
                 if not payload.member:
                     return
@@ -380,7 +468,50 @@ class ItkhoClient(discord.Client):
                 pass
 
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
+        if payload.member == self.user:
+            return
+
         match payload.emoji.name:
+            case "👀":
+                if not payload.member:
+                    return
+
+                message = await self.get_message(payload=payload)
+
+                if not message:
+                    return
+
+                if not isinstance(message.channel, discord.TextChannel):
+                    return
+
+                if message.author.bot:
+                    return
+
+                if not message.flags.has_thread:
+                    return
+
+                thread = message.channel.get_thread(message.id)
+                if not thread:
+                    return
+
+                messages = [m async for m in thread.history(limit=3, oldest_first=True)]
+
+                for message in messages:
+                    if (
+                        message.author == self.user
+                        and JOIN_THREAD_MENTIONS_PREFIX in message.content
+                    ):
+                        if payload.member.mention not in message.content:
+                            break
+                        mentions = message.content.replace(
+                            JOIN_THREAD_MENTIONS_PREFIX, ""
+                        ).split(JOIN_THREAD_MENTIONS_SEPARATOR)
+                        mentions.remove(payload.member.mention)
+                        await message.edit(
+                            content=JOIN_THREAD_MENTIONS_PREFIX
+                            + JOIN_THREAD_MENTIONS_SEPARATOR.join(mentions)
+                        )
+
             case "✅":
                 if payload.channel_id == self.roles_channel.id:
                     role = await self.get_wanted_role_from_reaction(payload=payload)
@@ -399,6 +530,18 @@ class ItkhoClient(discord.Client):
                 pass
 
     async def on_message(self, message: discord.Message):
+        async def try_create_thread(message: discord.Message):
+            if message.author == self.user:
+                return
+            if message.type == discord.MessageType.reply:
+                return
+            if isinstance(message.channel, discord.Thread):
+                return
+            title = generate_title(text=message.content)
+            await message.create_thread(name=f"{message.author.name}: {title}")
+
+        await try_create_thread(message=message)
+
         if message.author == self.user:
             return
 

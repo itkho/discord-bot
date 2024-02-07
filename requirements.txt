@@ -6,3 +6,4 @@ python-multipart
 uvicorn[standard]
 openai
 arrow
+rake_nltk
