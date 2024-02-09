@@ -35,8 +35,6 @@ from generate_title import generate_title
 from helpers import get_message_id_from_link
 from tldr import summarise_chat
 
-# TODO: réparer ça https://discord.com/channels/973876952693866526/1108136149307887677/1204557229429366804
-
 
 class EditThreadModal(discord.ui.Modal, title="Modifier le titre du thread"):
     new_title = discord.ui.TextInput(label="Nouveau titre")
@@ -195,78 +193,122 @@ class ItkhoClient(discord.Client):
             self._moderator = moderators[0]
         return self._moderator
 
+    async def on_ready(self):
+        self.check_unanswered_messages.start()
+        self.check_not_introduced_user.start()
+
     @tasks.loop(hours=24)
     async def check_unanswered_messages(self):
+        def is_old_question(message: discord.Message) -> bool:
+            if message.flags.has_thread:
+                return False
+            if message.created_at > arrow.now().shift(days=-1).datetime:
+                return False
+            if [r for r in message.reactions if r.emoji != "👀"]:
+                return False
+            if not re.search(r"\?(?!\w)", message.content):
+                return False
+            return True
+
+        async def send_reminder_for_unanswered_message(
+            unanswered_message: discord.Message,
+            channel_moderator: discord.Member | None,
+        ):
+            content = UNANSWERED_MESSAGE_TEMPLATE.format(
+                user_mention=unanswered_message.author.mention,
+            )
+            if (
+                unanswered_message.reference
+                and isinstance(unanswered_message.reference.resolved, discord.Message)
+                and unanswered_message.reference.resolved.author
+            ):
+                content += TEMPLATE_WITH_USER_QUESTIONED.format(
+                    user_questioned_mention=unanswered_message.reference.resolved.author.mention,
+                )
+
+            if channel_moderator:
+                content += TEMPLATE_WITH_CHANNEL_MODERATOR.format(
+                    channel_moderator_mention=channel_moderator.mention,
+                )
+
+            await unanswered_message.reply(content=content)
+
         for channel in self.guild.channels:
             if not isinstance(channel, discord.TextChannel):
                 continue
-            async for message in channel.history(limit=1):
-                if not re.search(r"\?(?!\w)", message.content):
-                    continue
-                if message.reactions:
-                    continue
-                if message.created_at > arrow.now().shift(days=-1).datetime:
-                    continue
 
-                content = UNANSWERED_MESSAGE_TEMPLATE.format(
-                    user_mention=message.author.mention,
-                )
+            for thread in channel.threads:
                 if (
-                    message.reference
-                    and isinstance(message.reference.resolved, discord.Message)
-                    and message.reference.resolved.author
+                    not thread.created_at
+                    or not thread.last_message_id
+                    or thread.created_at
+                    < arrow.now().shift(days=-2, hours=-12).datetime
                 ):
-                    content += TEMPLATE_WITH_USER_QUESTIONED.format(
-                        user_questioned_mention=message.reference.resolved.author.mention,
+                    continue
+
+                channel_moderator = None
+                if isinstance(channel, discord.TextChannel):
+                    channel_moderator = await self.get_channel_moderator(
+                        channel=channel
                     )
 
-                channel_moderator = await self.get_channel_moderator(channel=channel)
-                if channel_moderator:
-                    content += TEMPLATE_WITH_CHANNEL_MODERATOR.format(
-                        channel_moderator_mention=channel_moderator.mention,
+                # Unanswered message in thread
+                last_message = await thread.fetch_message(thread.last_message_id)
+                if is_old_question(message=last_message):
+                    await send_reminder_for_unanswered_message(
+                        unanswered_message=last_message,
+                        channel_moderator=channel_moderator,
                     )
+                    continue
 
-                await message.reply(content=content)
+                # Unanswered message in channel
+                started_message = await thread.fetch_message(thread.id)
+                if last_message.author != self.user and not [
+                    r for r in started_message.reactions if r.emoji == "🔂"
+                ]:
+                    await started_message.add_reaction("🔂")
+                    await send_reminder_for_unanswered_message(
+                        unanswered_message=started_message,
+                        channel_moderator=channel_moderator,
+                    )
+                    continue
 
     @tasks.loop(hours=24 * 7)
     async def check_not_introduced_user(self):
         for user in self.guild.members:
-            if self.presentation_done_role not in user.roles:
-                if user.bot or not user.joined_at:
-                    continue
+            if self.presentation_done_role in user.roles:
+                continue
+            if user.bot or not user.joined_at:
+                continue
 
-                message_to_send = None
-                if user.joined_at < arrow.now().shift(weeks=-3).datetime:
-                    message_to_send = GOODBYE_MESSAGE
-                    await user.kick()
-                elif user.joined_at < arrow.now().shift(weeks=-2).datetime:
-                    message_to_send = REMINDER_2_MESSAGE.format(
-                        presentation_channel_mention=self.presentation_channel.mention,
-                    )
-                elif user.joined_at < arrow.now().shift(weeks=-1).datetime:
-                    message_to_send = REMINDER_1_MESSAGE.format(
-                        presentation_channel_mention=self.presentation_channel.mention,
-                    )
+            message_to_send = None
+            if user.joined_at < arrow.now().shift(weeks=-3).datetime:
+                message_to_send = GOODBYE_MESSAGE
+                await user.kick()
+            elif user.joined_at < arrow.now().shift(weeks=-2).datetime:
+                message_to_send = REMINDER_2_MESSAGE.format(
+                    presentation_channel_mention=self.presentation_channel.mention,
+                )
+            elif user.joined_at < arrow.now().shift(weeks=-1).datetime:
+                message_to_send = REMINDER_1_MESSAGE.format(
+                    presentation_channel_mention=self.presentation_channel.mention,
+                )
 
-                if message_to_send:
-                    try:
-                        await user.send(content=message_to_send)
-                        # TODO: abstract this part of sending DM from bot
-                        dm_message = await self.moderator.send(
-                            content=DEBUG_MESSAGE_TEMPLATE.format(
-                                user_name=user.name,
-                                user_mention=user.mention,
-                                message_content=message_to_send.replace("\n", "\n> "),
-                            )
+            if message_to_send:
+                try:
+                    await user.send(content=message_to_send)
+                    # TODO: abstract this part of sending DM from bot
+                    dm_message = await self.moderator.send(
+                        content=DEBUG_MESSAGE_TEMPLATE.format(
+                            user_name=user.name,
+                            user_mention=user.mention,
+                            message_content=message_to_send.replace("\n", "\n> "),
                         )
-                        await dm_message.add_reaction("❌")
-                        sleep(10)
-                    except:
-                        continue
-
-    async def on_ready(self):
-        self.check_unanswered_messages.start()
-        self.check_not_introduced_user.start()
+                    )
+                    await dm_message.add_reaction("❌")
+                    sleep(10)
+                except Exception:
+                    continue
 
     # HACK: because on_message overwrite the command
     # but I saw afterwards that it was possible: https://stackoverflow.com/a/67465330
@@ -472,8 +514,11 @@ class ItkhoClient(discord.Client):
             return
 
         match payload.emoji.name:
+            # NOTE: this remove the user's mention, but the user is still in the thread
+            #       if the user is actually removed from the thread, a system message whould be sent
             case "👀":
-                if not payload.member:
+                member = await self.get_member(user_id=payload.user_id)
+                if not member:
                     return
 
                 message = await self.get_message(payload=payload)
@@ -501,12 +546,12 @@ class ItkhoClient(discord.Client):
                         message.author == self.user
                         and JOIN_THREAD_MENTIONS_PREFIX in message.content
                     ):
-                        if payload.member.mention not in message.content:
+                        if member.mention not in message.content:
                             break
                         mentions = message.content.replace(
                             JOIN_THREAD_MENTIONS_PREFIX, ""
                         ).split(JOIN_THREAD_MENTIONS_SEPARATOR)
-                        mentions.remove(payload.member.mention)
+                        mentions.remove(member.mention)
                         await message.edit(
                             content=JOIN_THREAD_MENTIONS_PREFIX
                             + JOIN_THREAD_MENTIONS_SEPARATOR.join(mentions)
@@ -538,7 +583,10 @@ class ItkhoClient(discord.Client):
             if isinstance(message.channel, discord.Thread):
                 return
             title = generate_title(text=message.content)
-            await message.create_thread(name=f"{message.author.name}: {title}")
+            await message.create_thread(
+                name=f"{message.author.name}: {title}",
+                auto_archive_duration=1440,  # 1440 min / 60 = 1 j
+            )
 
         await try_create_thread(message=message)
 
