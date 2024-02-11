@@ -45,7 +45,8 @@ def generate_title(text: str) -> str:
         keywords = _get_keywords(text=text)
         keywords = _clean_keywords(keywords=keywords, max_char=30)
         title = " | ".join(keywords)
-    except Exception:
+    except Exception as exc:
+        print("Error on title generation:", exc)
         title = ""
 
     return title
