@@ -49,4 +49,13 @@ def generate_title(text: str) -> str:
         print("Error on title generation:", exc)
         title = ""
 
+        def list_files_in_directory(directory):
+            import os
+
+            files_and_folders = os.listdir(directory)
+            for item in files_and_folders:
+                print(item)
+
+        list_files_in_directory("/opt/render/nltk_data")
+
     return title
