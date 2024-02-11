@@ -52,6 +52,12 @@ if not (
 if not (MODERATOR_USERNAME := os.getenv("MODERATOR_USERNAME", "")):
     raise ValueError("No 'MODERATOR_USERNAME' variable environment found")
 
+if not (
+    AUTO_THREAD_ENABLED_DEFAULT := os.getenv("AUTO_THREAD_ENABLED_DEFAULT", "false")
+):
+    raise ValueError("No 'AUTO_THREAD_ENABLED_DEFAULT' variable environment found")
+AUTO_THREAD_ENABLED_DEFAULT = AUTO_THREAD_ENABLED_DEFAULT.lower() == "true"
+
 
 # Channels
 PRESENTATION_CHANNEL_NAME = "présentation-🎙"
@@ -69,5 +75,10 @@ MODEL = "gpt-3.5-turbo-16k"
 # Others
 COMMAND_PREFIX = "$"
 
+# Keywords of channel's topic
+CHANNEL_MODERATOR_KEYWORD = "channel_moderator"
+AUTO_THREAD_ENABLED_KEYWORD = "auto_thread_enabled"
+
+# Auto-thread
 JOIN_THREAD_MENTIONS_PREFIX = "Frères ajoutés au thread via le 👀 :"
 JOIN_THREAD_MENTIONS_SEPARATOR = " "

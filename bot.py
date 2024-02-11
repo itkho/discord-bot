@@ -7,6 +7,9 @@ import discord
 from discord.ext import tasks
 
 from consts import (
+    AUTO_THREAD_ENABLED_DEFAULT,
+    AUTO_THREAD_ENABLED_KEYWORD,
+    CHANNEL_MODERATOR_KEYWORD,
     COMMAND_PREFIX,
     DEBUG_MESSAGE_TEMPLATE,
     DISCORD_TOKEN,
@@ -200,8 +203,6 @@ class ItkhoClient(discord.Client):
     @tasks.loop(hours=24)
     async def check_unanswered_messages(self):
         def is_old_question(message: discord.Message) -> bool:
-            if message.flags.has_thread:
-                return False
             if message.created_at > arrow.now().shift(days=-1).datetime:
                 return False
             if [r for r in message.reactions if r.emoji != "👀"]:
@@ -241,8 +242,7 @@ class ItkhoClient(discord.Client):
                 if (
                     not thread.created_at
                     or not thread.last_message_id
-                    or thread.created_at
-                    < arrow.now().shift(days=-2, hours=-12).datetime
+                    or thread.created_at < arrow.now().shift(weeks=-1).datetime
                 ):
                     continue
 
@@ -253,25 +253,50 @@ class ItkhoClient(discord.Client):
                     )
 
                 # Unanswered message in thread
-                last_message = await thread.fetch_message(thread.last_message_id)
-                if is_old_question(message=last_message):
-                    await send_reminder_for_unanswered_message(
-                        unanswered_message=last_message,
-                        channel_moderator=channel_moderator,
-                    )
-                    continue
+                try:
+                    last_message = await thread.fetch_message(thread.last_message_id)
+                except discord.NotFound:
+                    # Probably because it's a system message
+                    pass
+                else:
+                    if is_old_question(message=last_message):
+                        await send_reminder_for_unanswered_message(
+                            unanswered_message=last_message,
+                            channel_moderator=channel_moderator,
+                        )
+                        continue
 
                 # Unanswered message in channel
-                started_message = await thread.fetch_message(thread.id)
-                if last_message.author != self.user and not [
-                    r for r in started_message.reactions if r.emoji == "🔂"
-                ]:
-                    await started_message.add_reaction("🔂")
-                    await send_reminder_for_unanswered_message(
-                        unanswered_message=started_message,
-                        channel_moderator=channel_moderator,
-                    )
-                    continue
+                try:
+                    started_message = await channel.fetch_message(thread.id)
+                except discord.NotFound:
+                    # Can happen when the started message is deleted
+                    pass
+                else:
+                    if is_old_question(message=started_message):
+                        if not [
+                            r for r in started_message.reactions if r.emoji == "🔂"
+                        ] and last_message.author in [
+                            self.user,
+                            started_message.author,
+                        ]:
+                            someone_relied = any(
+                                [
+                                    m
+                                    async for m in thread.history(
+                                        limit=10, oldest_first=False
+                                    )
+                                    if m.author
+                                    not in [self.user, started_message.author]
+                                ]
+                            )
+                            if not someone_relied:
+                                await started_message.add_reaction("🔂")
+                                await send_reminder_for_unanswered_message(
+                                    unanswered_message=started_message,
+                                    channel_moderator=channel_moderator,
+                                )
+                                continue
 
     @tasks.loop(hours=24 * 7)
     async def check_not_introduced_user(self):
@@ -382,13 +407,27 @@ class ItkhoClient(discord.Client):
         except discord.NotFound:
             return None
 
+    def is_auto_thread_enabled(self, channel: discord.TextChannel) -> bool:
+        if not channel.topic:
+            return AUTO_THREAD_ENABLED_DEFAULT
+
+        match = re.search(rf"{AUTO_THREAD_ENABLED_KEYWORD}:(\w+)", channel.topic)
+        if match:
+            auto_thread_enabled_str = match.group(1).lower()
+            if auto_thread_enabled_str == "true":
+                return True
+            elif auto_thread_enabled_str == "false":
+                return False
+
+        return AUTO_THREAD_ENABLED_DEFAULT
+
     async def get_channel_moderator(
         self, channel: discord.TextChannel
     ) -> discord.Member | None:
         if not channel.topic:
             return None
 
-        match = re.search(r"channel_moderator:@(\w+\.\w+)", channel.topic)
+        match = re.search(rf"{CHANNEL_MODERATOR_KEYWORD}:@(.+?)( |\n|$)", channel.topic)
         if match:
             moderator_username = match.group(1)
             channel_moderator = discord.utils.get(
@@ -580,7 +619,9 @@ class ItkhoClient(discord.Client):
                 return
             if message.type == discord.MessageType.reply:
                 return
-            if isinstance(message.channel, discord.Thread):
+            if not isinstance(message.channel, discord.TextChannel):
+                return
+            if not self.is_auto_thread_enabled(channel=message.channel):
                 return
             title = generate_title(text=message.content)
             await message.create_thread(
