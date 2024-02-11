@@ -16,7 +16,15 @@ def _contains_arabic_letters(text: str) -> bool:
 
 
 def _get_keywords(text: str) -> list[str]:
-    r = Rake(language="french", max_length=20)
+    with open("./corpora/stopwords/french", "r") as file:
+        stopwords = {line.strip() for line in file}
+
+    r = Rake(
+        stopwords=stopwords,
+        punctuations={",", ".", "?", "!"},
+        language="french",
+        max_length=20,
+    )
     r.extract_keywords_from_text(text)
     return r.get_ranked_phrases()
 
@@ -48,14 +56,5 @@ def generate_title(text: str) -> str:
     except Exception as exc:
         print("Error on title generation:", exc)
         title = ""
-
-        def list_files_in_directory(directory):
-            import os
-
-            files_and_folders = os.listdir(directory)
-            for item in files_and_folders:
-                print(item)
-
-        list_files_in_directory(".")
 
     return title
