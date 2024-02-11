@@ -56,6 +56,6 @@ def generate_title(text: str) -> str:
             for item in files_and_folders:
                 print(item)
 
-        list_files_in_directory("/opt/render/nltk_data")
+        list_files_in_directory(".")
 
     return title
