@@ -30,6 +30,7 @@ from consts import (
     RULES_ACCEPTED_ROLE_NAME,
     RULES_CHANNEL_NAME,
     SAVED_MESSAGE_TEMPLATE,
+    SKIP_REMINDER_MESSAGE,
     TEMPLATE_WITH_CHANNEL_MODERATOR,
     TEMPLATE_WITH_USER_QUESTIONED,
     UNANSWERED_MESSAGE_TEMPLATE,
@@ -319,7 +320,7 @@ class ItkhoClient(discord.Client):
                     presentation_channel_mention=self.presentation_channel.mention,
                 )
 
-            if message_to_send:
+            if message_to_send and not SKIP_REMINDER_MESSAGE:
                 try:
                     await user.send(content=message_to_send)
                     # TODO: abstract this part of sending DM from bot

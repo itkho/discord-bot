@@ -52,6 +52,11 @@ if not (
 if not (MODERATOR_USERNAME := os.getenv("MODERATOR_USERNAME", "")):
     raise ValueError("No 'MODERATOR_USERNAME' variable environment found")
 
+if not (SKIP_REMINDER_MESSAGE := os.getenv("SKIP_REMINDER_MESSAGE", "false")):
+    raise ValueError("No 'SKIP_REMINDER_MESSAGE' variable environment found")
+SKIP_REMINDER_MESSAGE = SKIP_REMINDER_MESSAGE.lower() == "true"
+
+
 if not (
     AUTO_THREAD_ENABLED_DEFAULT := os.getenv("AUTO_THREAD_ENABLED_DEFAULT", "false")
 ):
