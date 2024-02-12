@@ -19,6 +19,8 @@ def _get_keywords(text: str) -> list[str]:
     with open("./corpora/stopwords/french", "r") as file:
         stopwords = {line.strip() for line in file}
 
+    print(f"{stopwords = }")
+
     r = Rake(
         stopwords=stopwords,
         punctuations={",", ".", "?", "!"},
@@ -51,10 +53,14 @@ def _clean_keywords(keywords: list[str], max_char: int) -> list[str]:
 def generate_title(text: str) -> str:
     try:
         keywords = _get_keywords(text=text)
+        print(f"{keywords = }")
         keywords = _clean_keywords(keywords=keywords, max_char=30)
+        print(f"{keywords = }")
         title = " | ".join(keywords)
     except Exception as exc:
         print("Error on title generation:", exc)
         title = ""
+
+    print(f"{title = }")
 
     return title
