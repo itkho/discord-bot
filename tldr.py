@@ -7,7 +7,7 @@ def summarise_chat(chat: str) -> str:
     """Return a summary of the chat given"""
 
     try:
-        completion = openai.ChatCompletion.create(
+        completion = openai.chat.completions.create(
             model=MODEL,
             messages=[
                 {
@@ -22,7 +22,7 @@ def summarise_chat(chat: str) -> str:
             max_tokens=400,
         )
 
-        return completion.choices[0].message.content
+        return completion.choices[0].message.content or ""
 
     except Exception as exc:
         return str(exc)
