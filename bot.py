@@ -7,6 +7,7 @@ import discord
 from discord.ext import tasks
 
 from consts import (
+    ADMIN_ROLE_NAME,
     AUTO_THREAD_ENABLED_DEFAULT,
     AUTO_THREAD_ENABLED_KEYWORD,
     CHANNEL_MODERATOR_KEYWORD,
@@ -118,6 +119,19 @@ class ItkhoClient(discord.Client):
                 )
             self._rules_accepted_role = rules_accepted_roles[0]
         return self._rules_accepted_role
+
+    @property
+    def admin_role(self) -> discord.Role:
+        if not hasattr(self, "_admin_role"):
+            admin_roles = [
+                r for r in self.guild.roles if r.name.lower() == ADMIN_ROLE_NAME.lower()
+            ]
+            if len(admin_roles) != 1:
+                raise ValueError(
+                    f"There must be one and only one '{ADMIN_ROLE_NAME}' role."
+                )
+            self._admin_role = admin_roles[0]
+        return self._admin_role
 
     @property
     def presentation_channel(self) -> discord.TextChannel:
@@ -369,7 +383,19 @@ class ItkhoClient(discord.Client):
                 await message.channel.send(content=summary)
 
             case "move":
+                if (
+                    not isinstance(message.author, discord.Member)
+                    or self.admin_role in message.author.roles
+                ):
+                    await message.channel.send(
+                        content="Command allowed only by admin members"
+                    )
+                    return
+
                 if len(message.raw_channel_mentions) != 1:
+                    await message.channel.send(
+                        content="Missing channel destination mention"
+                    )
                     return
 
                 if not message.reference or not isinstance(

@@ -76,6 +76,7 @@ FAQ_CHANNEL_NAME = "faq-❔"
 # Roles
 PRESENTATION_DONE_ROLE_NAME = "presentation-done-🎙"
 RULES_ACCEPTED_ROLE_NAME = "rules-accepted-📜"
+ADMIN_ROLE_NAME = "Admin"
 
 # OpenIA
 MODEL = "gpt-3.5-turbo-16k"
