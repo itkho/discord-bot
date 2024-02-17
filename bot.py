@@ -22,6 +22,7 @@ from consts import (
     JOIN_THREAD_MENTIONS_SEPARATOR,
     MARHABAN_MESSAGE,
     MODERATOR_USERNAME,
+    MOVED_MESSAGE_TEMPLATE,
     PRESENTATION_CHANNEL_NAME,
     PRESENTATION_DONE_ROLE_NAME,
     REMINDER_1_MESSAGE,
@@ -339,6 +340,7 @@ class ItkhoClient(discord.Client):
     # HACK: because on_message overwrite the command
     # but I saw afterwards that it was possible: https://stackoverflow.com/a/67465330
     # see here for commmand inside a Bot class: https://stackoverflow.com/a/67913136
+    # UPDATE: I tried, but it didn't worked....
     async def run_command(self, message: discord.Message):
         content_without_prefix = "".join(message.content.split(COMMAND_PREFIX)[1:])
         content_without_prefix_split = content_without_prefix.split(" ")
@@ -365,6 +367,33 @@ class ItkhoClient(discord.Client):
                 messages.reverse()
                 summary = summarise_chat(chat="\n".join(messages))
                 await message.channel.send(content=summary)
+
+            case "move":
+                if len(message.raw_channel_mentions) != 1:
+                    return
+
+                if not message.reference or not isinstance(
+                    message.reference.resolved, discord.message.Message
+                ):
+                    return
+
+                new_channel = self.get_channel(message.raw_channel_mentions[0])
+                if not isinstance(new_channel, discord.TextChannel):
+                    return
+
+                await new_channel.send(
+                    content=MOVED_MESSAGE_TEMPLATE.format(
+                        message_author_mention=message.reference.resolved.author.mention,
+                        initial_channel=message.channel.mention,  # type: ignore
+                        move_author_mention=message.author.mention,
+                        message_content=message.reference.resolved.content.replace(
+                            "\n", "\n> "
+                        ),
+                    )
+                )
+                await message.delete()
+                await message.reference.resolved.delete()
+
             case _:
                 pass
 
@@ -613,7 +642,10 @@ class ItkhoClient(discord.Client):
 
     async def on_message(self, message: discord.Message):
         async def try_create_thread(message: discord.Message):
-            if message.author == self.user:
+            if (
+                message.author == self.user
+                and message.content[:20] != MOVED_MESSAGE_TEMPLATE[:20]
+            ):
                 return
             if message.type == discord.MessageType.reply:
                 return

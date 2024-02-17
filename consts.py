@@ -28,6 +28,9 @@ if not (GRANTED_MESSAGE := os.getenv("GRANTED_MESSAGE", "")):
 if not (SAVED_MESSAGE_TEMPLATE := os.getenv("SAVED_MESSAGE_TEMPLATE", "")):
     raise ValueError("No 'SAVED_MESSAGE_TEMPLATE' variable environment found")
 
+if not (MOVED_MESSAGE_TEMPLATE := os.getenv("MOVED_MESSAGE_TEMPLATE", "")):
+    raise ValueError("No 'MOVED_MESSAGE_TEMPLATE' variable environment found")
+
 if not (UNANSWERED_MESSAGE_TEMPLATE := os.getenv("UNANSWERED_MESSAGE_TEMPLATE", "")):
     raise ValueError("No 'UNANSWERED_MESSAGE_TEMPLATE' variable environment found")
 
