@@ -465,9 +465,6 @@ class ItkhoClient(discord.Client):
                 if not isinstance(message.channel, discord.TextChannel):
                     return
 
-                if message.author.bot:
-                    return
-
                 if not message.flags.has_thread:
                     return
 
