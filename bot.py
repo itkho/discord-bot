@@ -1,6 +1,6 @@
 import re
 from time import sleep
-from typing import Any
+from typing import Any, List
 
 import arrow
 import discord
@@ -356,72 +356,95 @@ class ItkhoClient(discord.Client):
     # see here for commmand inside a Bot class: https://stackoverflow.com/a/67913136
     # UPDATE: I tried, but it didn't worked....
     async def run_command(self, message: discord.Message):
-        content_without_prefix = "".join(message.content.split(COMMAND_PREFIX)[1:])
-        content_without_prefix_split = content_without_prefix.split(" ")
-        command, content = (
-            content_without_prefix_split[0],
-            "".join(content_without_prefix_split[1:]),
-        )
+        """
+        Executes different commands based on user input.
+
+        Args:
+            message (discord.Message): The message object that contains the command and its arguments.
+        """
+        COMMAND_PREFIX = "!"  # Command prefix
+
+        # Remove the command prefix and split the content into command and arguments
+        content_without_prefix = message.content.removeprefix(COMMAND_PREFIX)
+        command, *args = content_without_prefix.split()
 
         match command.lower():
             case "tldr":
-                start_message_id = get_message_id_from_link(link=content)
-                counter = 0
-                messages: list[str] = []
-                async for message in message.channel.history():
-                    counter += 1
-                    if counter == 1:
-                        # Skip the first one because it's the command itself
-                        continue
-                    messages.append(f"{message.author.name}: {message.content}\n")
-                    if message.id == start_message_id or counter > 200:
-                        break
-
-                # Reverse the list to have oldest messages first
-                messages.reverse()
-                summary = summarise_chat(chat="\n".join(messages))
-                await message.channel.send(content=summary)
-
+                await self._execute_tldr_command(message, args)
             case "move":
-                if (
-                    not isinstance(message.author, discord.Member)
-                    or self.admin_role in message.author.roles
-                ):
-                    await message.channel.send(
-                        content="Command allowed only by admin members"
-                    )
-                    return
-
-                if len(message.raw_channel_mentions) != 1:
-                    await message.channel.send(
-                        content="Missing channel destination mention"
-                    )
-                    return
-
-                if not message.reference or not isinstance(
-                    message.reference.resolved, discord.message.Message
-                ):
-                    return
-
-                new_channel = self.get_channel(message.raw_channel_mentions[0])
-                if not isinstance(new_channel, discord.TextChannel):
-                    return
-
-                await new_channel.send(
-                    content=MOVED_MESSAGE_TEMPLATE.format(
-                        message_author_mention=message.reference.resolved.author.mention,
-                        initial_channel=message.channel.mention,  # type: ignore
-                        move_author_mention=message.author.mention,
-                        message_content=message.reference.resolved.content.replace(
-                            "\n", "\n> "
-                        ),
-                    )
-                )
-                await message.delete()
-                await message.reference.resolved.delete()
-
+                await self._execute_move_command(message)
             case _:
                 pass
+
+    async def _execute_tldr_command(self, message: discord.Message, args: List[str]):
+        """
+        Executes the "tldr" command.
+
+        Args:
+            message (discord.Message): The message object that contains the command and its arguments.
+            args (List[str]): The arguments for the command.
+        """
+        if not args:
+            return
+
+        link = args[0]
+        start_message_id = get_message_id_from_link(link=link)
+
+        counter = 0
+        messages: list[str] = []
+        async for msg in message.channel.history():
+            counter += 1
+            if counter == 1:
+                # Skip the first one because it's the command itself
+                continue
+            messages.append(f"{msg.author.name}: {msg.content}\n")
+            if msg.id == start_message_id or counter > 200:
+                break
+
+        # Reverse the list to have oldest messages first
+        messages.reverse()
+        summary = summarise_chat(chat="\n".join(messages))
+        await message.channel.send(content=summary)
+
+    async def _execute_move_command(self, message: discord.Message):
+        """
+        Executes the "move" command.
+
+        Args:
+            message (discord.Message): The message object that contains the command and its arguments.
+        """
+        if (
+            not isinstance(message.author, discord.Member)
+            or self.admin_role not in message.author.roles
+        ):
+            await message.channel.send(content="Command allowed only by admin members")
+            return
+
+        if len(message.raw_channel_mentions) != 1:
+            await message.channel.send(content="Missing channel destination mention")
+            return
+
+        if not message.reference or not isinstance(
+            message.reference.resolved, discord.Message
+        ):
+            return
+
+        new_channel = self.get_channel(message.raw_channel_mentions[0])
+        if not isinstance(new_channel, discord.TextChannel):
+            return
+
+        message_to_move = message.reference.resolved
+
+        await new_channel.send(
+            content=MOVED_MESSAGE_TEMPLATE.format(
+                message_author_mention=message_to_move.author.mention,
+                initial_channel=message.channel.mention,  # type: ignore
+                move_author_mention=message.author.mention,
+                message_content=message_to_move.content.replace("\n", "\n> "),
+            )
+        )
+        await message.delete()
+        await message_to_move.delete()
 
     async def get_wanted_role_from_reaction(
         self,
