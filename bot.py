@@ -362,8 +362,6 @@ class ItkhoClient(discord.Client):
         Args:
             message (discord.Message): The message object that contains the command and its arguments.
         """
-        COMMAND_PREFIX = "!"  # Command prefix
-
         # Remove the command prefix and split the content into command and arguments
         content_without_prefix = message.content.removeprefix(COMMAND_PREFIX)
         command, *args = content_without_prefix.split()
