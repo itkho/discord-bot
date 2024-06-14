@@ -22,3 +22,9 @@ For now, the bot run here, on a server with free option: https://dashboard.rende
 The API is accessible from here: https://itkho-bot.onrender.com
 
 And this cron keeps the server awake: https://console.cron-job.org
+
+
+## Command line used on the server 
+```sh
+pip install -r requirements.txt && python -c "import nltk; nltk.download('stopwords', download_dir='.'); nltk.download('punkt', download_dir='.')"
+```

@@ -604,6 +604,17 @@ class ItkhoClient(discord.Client):
 
                 await dm_message.delete()
 
+            case "🧵":
+                message = await self.get_message(payload=payload)
+
+                if not message or message.flags.has_thread:
+                    return
+
+                title = generate_title(text=message.content)
+                await message.create_thread(
+                    name=title or f"thread: {message.author.name}"
+                )
+
             case "👋" | "🙏" | "🤞" | "🖕":
                 message = await self.get_message(payload=payload)
 
@@ -702,7 +713,8 @@ class ItkhoClient(discord.Client):
                 return
             title = generate_title(text=message.content)
             await message.create_thread(
-                name=f"{message.author.name}: {title}",
+                name=title,
+                # name=f"{message.author.name}: {title}",
                 auto_archive_duration=1440,  # 1440 min / 60 = 1 j
             )
 
