@@ -60,4 +60,4 @@ def generate_title(text: str) -> str:
         print("Error on title generation:", exc)
         title = ""
 
-    return title
+    return title[:100]  # discord does not allow more than 100 char for the title
