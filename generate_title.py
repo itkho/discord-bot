@@ -19,6 +19,7 @@ def _get_keywords(text: str) -> list[str]:
     # import nltk
     # nltk.download("stopwords", download_dir=".")
     # nltk.download("punkt", download_dir=".")
+    # nltk.download("punkt_tab", download_dir=".")
     with open("./corpora/stopwords/french", "r") as file:
         stopwords = {line.strip() for line in file}
 

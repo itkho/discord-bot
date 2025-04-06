@@ -26,5 +26,6 @@ And this cron keeps the server awake: https://console.cron-job.org
 
 ## Command line used on the server 
 ```sh
-pip install -r requirements.txt && python -c "import nltk; nltk.download('stopwords', download_dir='.'); nltk.download('punkt', download_dir='.')"
+# pip install -r requirements.txt && python -c "import nltk; nltk.download('stopwords', download_dir='.'); nltk.download('punkt', download_dir='.'); nltk.download('punkt_tab', download_dir='.')"
+uv sync --frozen && python -c "import nltk; nltk.download('stopwords', download_dir='.'); nltk.download('punkt', download_dir='.'); nltk.download('punkt_tab', download_dir='.')"
 ```

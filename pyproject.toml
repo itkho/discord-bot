@@ -1,0 +1,17 @@
+[project]
+name = "itkho-discord-bot"
+version = "0.1.0"
+description = "Discord bot for the itkho guild"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "arrow>=1.3.0",
+    "discord>=2.3.2",
+    "fastapi>=0.115.12",
+    "jinja2>=3.1.6",
+    "openai>=1.70.0",
+    "python-dotenv>=1.1.0",
+    "python-multipart>=0.0.20",
+    "rake-nltk>=1.0.6",
+    "uvicorn>=0.34.0",
+]
